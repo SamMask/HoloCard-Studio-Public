@@ -1,0 +1,342 @@
+[
+  {
+    "formatVersion": 1,
+    "id": "full-feature-custom",
+    "name": "全功能固定卡",
+    "createdAt": "2026-10-15T00:00:00.000Z",
+    "updatedAt": "2026-10-15T02:03:04.000Z",
+    "aspect": "custom",
+    "customAspect": {
+      "width": 70,
+      "height": 110
+    },
+    "bodyColor": "#203040",
+    "cornerRadius": 0.07,
+    "front": {
+      "layers": [
+        {
+          "id": "front-base",
+          "name": "front-base",
+          "role": "base",
+          "image": "29ceab09bb8ff604",
+          "visible": true,
+          "depth": 0,
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "holo": false,
+          "hasAlpha": false
+        },
+        {
+          "id": "front-hero",
+          "name": "front-hero",
+          "role": "depth",
+          "image": "d48c2245b31f3f1c",
+          "visible": true,
+          "depth": 25,
+          "x": 0.12,
+          "y": -0.18,
+          "scale": 0.85,
+          "holo": true,
+          "hasAlpha": true,
+          "lineart": true,
+          "alt": {
+            "image": "66e1fed862d6580f",
+            "hasAlpha": true
+          },
+          "fx": {
+            "kind": "fire",
+            "color": "#ff8833",
+            "strength": 62,
+            "speed": 43
+          }
+        },
+        {
+          "id": "front-clip",
+          "name": "front-clip",
+          "role": "depth",
+          "image": "9f51bfdaa9fa9c93",
+          "visible": true,
+          "depth": 25,
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "holo": true,
+          "hasAlpha": true,
+          "clip": true,
+          "opacity": 63,
+          "blend": "screen"
+        },
+        {
+          "id": "front-breakout",
+          "name": "front-breakout",
+          "role": "depth",
+          "image": "f0894e1456cb6879",
+          "visible": true,
+          "depth": 65,
+          "x": -0.21,
+          "y": 0.19,
+          "scale": 1.15,
+          "holo": true,
+          "hasAlpha": true,
+          "breakout": true,
+          "opacity": 78,
+          "blend": "multiply"
+        },
+        {
+          "id": "front-text",
+          "name": "front-text",
+          "role": "depth",
+          "image": "261926f83930ae99",
+          "visible": false,
+          "depth": 85,
+          "x": 0.05,
+          "y": 0.4,
+          "scale": 0.8,
+          "holo": true,
+          "hasAlpha": true,
+          "text": {
+            "content": "星光\n測試",
+            "font": "wenkai",
+            "color": "#ffeedd",
+            "align": "end",
+            "vertical": true,
+            "style": "outline"
+          },
+          "fx": {
+            "kind": "electric",
+            "color": "#33aaff",
+            "strength": 38,
+            "speed": 74
+          }
+        }
+      ],
+      "foil": {
+        "shape": "mask",
+        "mask": "b04391e6a84fcf9e",
+        "frame": false
+      }
+    },
+    "back": {
+      "layers": [
+        {
+          "id": "back-base",
+          "name": "back-base",
+          "role": "base",
+          "image": "29ceab09bb8ff604",
+          "visible": true,
+          "depth": 0,
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "holo": false,
+          "hasAlpha": false
+        },
+        {
+          "id": "back-hero",
+          "name": "back-hero",
+          "role": "depth",
+          "image": "d48c2245b31f3f1c",
+          "visible": true,
+          "depth": 25,
+          "x": 0.12,
+          "y": -0.18,
+          "scale": 0.85,
+          "holo": true,
+          "hasAlpha": true,
+          "lineart": true,
+          "alt": {
+            "image": "66e1fed862d6580f",
+            "hasAlpha": true
+          },
+          "fx": {
+            "kind": "water",
+            "color": "#ff8833",
+            "strength": 62,
+            "speed": 43
+          }
+        },
+        {
+          "id": "back-clip",
+          "name": "back-clip",
+          "role": "depth",
+          "image": "9f51bfdaa9fa9c93",
+          "visible": true,
+          "depth": 25,
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "holo": true,
+          "hasAlpha": true,
+          "clip": true,
+          "opacity": 63,
+          "blend": "screen"
+        },
+        {
+          "id": "back-breakout",
+          "name": "back-breakout",
+          "role": "depth",
+          "image": "f0894e1456cb6879",
+          "visible": true,
+          "depth": 65,
+          "x": -0.21,
+          "y": 0.19,
+          "scale": 1.15,
+          "holo": true,
+          "hasAlpha": true,
+          "breakout": true,
+          "opacity": 78,
+          "blend": "multiply"
+        },
+        {
+          "id": "back-text",
+          "name": "back-text",
+          "role": "depth",
+          "image": "261926f83930ae99",
+          "visible": false,
+          "depth": 85,
+          "x": 0.05,
+          "y": 0.4,
+          "scale": 0.8,
+          "holo": true,
+          "hasAlpha": true,
+          "text": {
+            "content": "星光\n測試",
+            "font": "wenkai",
+            "color": "#ffeedd",
+            "align": "end",
+            "vertical": true,
+            "style": "outline"
+          },
+          "fx": {
+            "kind": "electric",
+            "color": "#33aaff",
+            "strength": 38,
+            "speed": 74
+          }
+        }
+      ],
+      "foil": {
+        "shape": "mask",
+        "mask": "b04391e6a84fcf9e",
+        "frame": false
+      }
+    },
+    "frame": {
+      "enabled": true,
+      "width": 0.04,
+      "color": "#c8a050",
+      "shine": 73,
+      "style": "ornate"
+    },
+    "holo": {
+      "strength": 81,
+      "bandWidth": 0.7,
+      "sparkle": 46,
+      "palette": "custom",
+      "colors": [
+        "#ff5544",
+        "#44ff99",
+        "#4477ff",
+        "#ffbb44"
+      ],
+      "matte": 24
+    },
+    "shadow": {
+      "strength": 68,
+      "distance": 37
+    },
+    "story": {
+      "text": "星光映入卡片\n微風拂過水面",
+      "font": "notoserif"
+    },
+    "view": {
+      "returnToFront": false,
+      "showcase": true,
+      "stage": "water",
+      "sleeve": true,
+      "backdrop": "013bd71bd80db7d3",
+      "foreground": {
+        "image": "0fa32e40f264a12e",
+        "x": 0.23,
+        "y": -0.36,
+        "scale": 1.7,
+        "blur": 28
+      },
+      "waterScene": "ink",
+      "farPan": {
+        "x": -0.27,
+        "y": 0.34,
+        "zoom": 1.6
+      },
+      "waterLook": {
+        "mist": 42,
+        "mistColor": "#9daecc",
+        "streak": 67,
+        "glint": 59,
+        "glintColor": "#ffe0aa",
+        "ripple": 31,
+        "lift": 26,
+        "horizon": 48
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "full-feature-disc",
+    "name": "光碟固定卡",
+    "createdAt": "2026-10-15T00:00:00.000Z",
+    "updatedAt": "2026-10-15T02:03:04.000Z",
+    "kind": "disc",
+    "aspect": "square",
+    "bodyColor": "#243142",
+    "cornerRadius": 0.03,
+    "front": {
+      "layers": [
+        {
+          "id": "disc-print",
+          "name": "disc-print",
+          "role": "base",
+          "image": "29ceab09bb8ff604",
+          "visible": true,
+          "depth": 0,
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "holo": false,
+          "hasAlpha": false
+        }
+      ]
+    },
+    "back": {
+      "layers": []
+    },
+    "frame": {
+      "enabled": false,
+      "width": 0.02,
+      "color": "#aabbcc",
+      "shine": 45
+    },
+    "holo": {
+      "strength": 58,
+      "bandWidth": 1.2,
+      "sparkle": 27,
+      "palette": "silver",
+      "colors": [
+        "#ccddee",
+        "#ffffff",
+        "#99aabb",
+        "#ddeeff"
+      ]
+    },
+    "shadow": {
+      "strength": 32,
+      "distance": 64
+    },
+    "view": {
+      "returnToFront": true,
+      "showcase": false,
+      "stage": "none"
+    }
+  }
+]

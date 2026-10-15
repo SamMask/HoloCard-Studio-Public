@@ -1,0 +1,5821 @@
+/* 立體卡牌工坊：寫實桌面工坊風（DESIGN §5.1，T-831）——頁面背景是壓暗、模糊的木桌工坊；面板是半透明暖深棕的霧面玻璃
+   （背景模糊透出木桌）＋細金銅邊＋淡淡內光、大圓角；強調色琥珀金：主要按鈕＝琥珀金實心深色字（拋光金屬）、次要按鈕＝深底細金邊、
+   分頁選中＝金色實心、清單與選項選中＝金邊發光。只有焦點與選中會發光，其他保持安靜，卡片永遠是畫面最亮的東西。
+   顏色全部是 :root 的變數：8 個色票（--c-*）＋由它們推出來的半透明、邊線、光暈；規則裡不寫色碼
+   （tests/ui-theme-css.test.ts 檢查；舞台與卡片內容的示意不跟介面換色，在那個測試的清單裡）。 */
+
+:root {
+  /* ---- 色票（DESIGN §5.1 規格板）：介面的顏色全部從這 8 色推出來 ---- */
+  --c-gold-light: #f6d19b; /* 主色金光：亮邊、焦點外框、選取框、滑桿把手的高光 */
+  --c-wood: #3b2a1f; /* 深木棕：面板、浮起來的框 */
+  --c-amber: #d4a259; /* 琥珀金：強調色（主要按鈕、選中、開關、滑桿、分頁選中） */
+  --c-cream: #f8f1e6; /* 奶油白：文字 */
+  --c-ink: #1b1612; /* 墨褐：最深的底、金色上的字、陰影、遮罩 */
+  --c-warm-gray: #7a6f63; /* 暖灰：關著的開關、霧面、棋盤格 */
+  --c-wine: #8c3b3b; /* 酒紅：危險（刪除、沒存到） */
+  --c-pine: #3e6b56; /* 松綠：已儲存、成功 */
+
+  /* 頁面：木桌工坊圖（body::before）讀不到時的深木棕漸層，左上角一點檯燈的暖光 */
+  --bg-deep: var(--c-ink);
+  --page-fallback:
+    radial-gradient(1100px 640px at 18% -8%, color-mix(in srgb, var(--c-amber) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--c-wood), var(--c-ink));
+
+  /* ---- 舞台（不跟介面換色：DESIGN §5.1「舞台本身的樣子不變」） ---- */
+  /* 預覽區沒有底圖時的深藍徑向漸層 */
+  --stage-bg: radial-gradient(ellipse 80% 70% at 50% 40%, #1a2c5c 0%, #0c1736 55%, #060b1b 100%);
+  /* 舞台選「展示廳」（T-410）時的預覽區底色：上方偏亮的暗藍空間，3D 的地板在遠處淡進這個顏色 */
+  --gallery-bg: radial-gradient(ellipse 95% 80% at 50% 28%, #142a5e 0%, #0b1a3e 42%, #060d22 72%, #04081a 100%);
+
+  /* ---- 面板：半透明暖深棕（霧面玻璃）＋細金銅邊＋頂邊打光＋淡淡內光 ---- */
+  --panel-top: color-mix(in srgb, var(--c-wood) 74%, transparent);
+  --panel: color-mix(in srgb, var(--c-ink) 82%, transparent);
+  --panel-solid: color-mix(in srgb, var(--c-wood) 45%, var(--c-ink)); /* 選單、確認框、拖曳中的列：不透明 */
+  --panel-raised: color-mix(in srgb, var(--c-wood) 94%, var(--c-gold-light)); /* 不透明浮起來的框（選單、確認框）的上緣 */
+  --sheet-top: color-mix(in srgb, var(--c-wood) 96%, transparent); /* 大片的面板（卡片庫、說明）：幾乎不透明，蓋在 3D 上不用背景模糊 */
+  --sheet: color-mix(in srgb, color-mix(in srgb, var(--c-wood) 30%, var(--c-ink)) 97%, transparent);
+  --border: color-mix(in srgb, var(--c-amber) 28%, transparent); /* 細金銅邊 */
+  --border-glow: color-mix(in srgb, var(--c-gold-light) 46%, transparent); /* 面板頂邊比較亮（像打光，不是發光） */
+  --line: color-mix(in srgb, var(--c-gold-light) 11%, transparent);
+  --inset: color-mix(in srgb, var(--c-ink) 58%, transparent); /* 凹下去的底（分段按鈕槽、數值框、輸入框） */
+  --inner-light: inset 0 1px 0 color-mix(in srgb, var(--c-gold-light) 14%, transparent);
+  --shadow: 0 16px 40px color-mix(in srgb, var(--c-ink) 72%, transparent);
+  --shadow-deep: color-mix(in srgb, var(--c-ink) 85%, transparent);
+  --drop-shadow: color-mix(in srgb, var(--c-ink) 70%, transparent);
+  --drop-shadow-soft: color-mix(in srgb, var(--c-ink) 45%, transparent);
+  --panel-shadow: var(--shadow), var(--inner-light), inset 0 0 28px color-mix(in srgb, var(--c-gold-light) 4%, transparent);
+  --scrim: color-mix(in srgb, var(--c-ink) 70%, transparent); /* 蓋在編輯畫面上的暗底（卡片庫、新卡片） */
+  --scrim-light: color-mix(in srgb, var(--c-ink) 55%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--c-ink) 78%, transparent);
+
+  /* ---- 文字：標題奶油白、內文、說明字淡米色 ---- */
+  --title: color-mix(in srgb, var(--c-cream) 75%, var(--c-gold-light));
+  --text-strong: var(--c-cream);
+  --text: color-mix(in srgb, var(--c-cream) 88%, var(--c-warm-gray));
+  --muted: color-mix(in srgb, color-mix(in srgb, var(--c-cream) 50%, var(--c-gold-light)) 58%, var(--c-warm-gray));
+
+  /* ---- 次要按鈕、控制項：深底細金邊；圖示按鈕：深底方形；圖層列：深底 ---- */
+  --control: linear-gradient(180deg, color-mix(in srgb, var(--c-wood) 80%, transparent), color-mix(in srgb, var(--c-ink) 74%, transparent));
+  --control-hover: linear-gradient(
+    180deg,
+    color-mix(in srgb, color-mix(in srgb, var(--c-wood) 84%, var(--c-amber)) 90%, transparent),
+    color-mix(in srgb, var(--c-ink) 80%, transparent)
+  );
+  --control-border: color-mix(in srgb, var(--c-amber) 40%, transparent);
+  --control-border-hover: color-mix(in srgb, var(--c-amber) 66%, transparent);
+  --icon-btn: color-mix(in srgb, var(--c-ink) 48%, transparent);
+  --hover: color-mix(in srgb, var(--c-gold-light) 8%, transparent);
+  --row-bg: color-mix(in srgb, var(--c-ink) 44%, transparent);
+  --row-bg-hover: color-mix(in srgb, color-mix(in srgb, var(--c-ink) 80%, var(--c-amber)) 55%, transparent);
+  --row-border: color-mix(in srgb, var(--c-gold-light) 7%, transparent);
+  --row-border-hover: color-mix(in srgb, var(--c-amber) 42%, transparent); /* 滑過＝淡金邊 */
+  --badge: color-mix(in srgb, var(--c-cream) 11%, transparent);
+  --badge-on: color-mix(in srgb, var(--c-ink) 20%, transparent);
+  --chip-bg: color-mix(in srgb, var(--c-ink) 82%, transparent); /* 縮圖上的小標示底 */
+  --dashed: color-mix(in srgb, var(--c-amber) 30%, transparent);
+  --dashed-strong: color-mix(in srgb, var(--c-amber) 48%, transparent);
+  --scrollbar: color-mix(in srgb, var(--c-amber) 34%, transparent);
+
+  /* ---- 滑桿（金色把手）、開關（開＝金色） ---- */
+  --track: color-mix(in srgb, var(--c-ink) 62%, var(--c-warm-gray)); /* 滑桿軌道、關著的開關：暖灰的凹槽（深底上看得到） */
+  --track-border: color-mix(in srgb, var(--c-warm-gray) 45%, transparent);
+  --track-shade: inset 0 1px 2px color-mix(in srgb, var(--c-ink) 80%, transparent), 0 1px 0 color-mix(in srgb, var(--c-gold-light) 7%, transparent);
+  --tick: color-mix(in srgb, var(--c-gold-light) 55%, transparent);
+  --slider-fill: linear-gradient(90deg, var(--accent-deep), var(--c-amber) 70%, var(--c-gold-light));
+  --knob: radial-gradient(circle at 35% 30%, var(--c-cream) 0%, var(--c-gold-light) 38%, var(--c-amber) 100%);
+  --knob-rim: color-mix(in srgb, var(--c-amber) 55%, var(--c-wood));
+  --knob-off: color-mix(in srgb, var(--c-warm-gray) 72%, var(--c-cream));
+  --knob-on: var(--c-cream);
+
+  /* ---- 強調色：琥珀金（拋光金屬：上亮下深＋頂邊高光） ---- */
+  --accent: var(--c-amber);
+  --accent-deep: color-mix(in srgb, var(--c-amber) 72%, var(--c-wood)); /* 漸層偏深的那一端 */
+  --accent-edge: color-mix(in srgb, var(--c-gold-light) 78%, transparent); /* 金色按鈕的亮邊 */
+  --accent-edge-hover: color-mix(in srgb, var(--c-cream) 80%, transparent);
+  --accent-ink: var(--c-ink); /* 金色底上的字 */
+  --accent-ink-soft: color-mix(in srgb, var(--c-ink) 72%, transparent);
+  --accent-grad: linear-gradient(180deg, var(--c-gold-light) 0%, var(--c-amber) 60%, var(--accent-deep) 100%);
+  --accent-grad-hover: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c-gold-light) 60%, var(--c-cream)) 0%,
+    color-mix(in srgb, var(--c-amber) 70%, var(--c-gold-light)) 60%,
+    var(--c-amber) 100%
+  );
+  --accent-shadow: 0 4px 14px color-mix(in srgb, var(--c-ink) 55%, transparent), inset 0 1px 0 color-mix(in srgb, var(--c-cream) 65%, transparent);
+  --accent-shadow-hover:
+    0 6px 18px color-mix(in srgb, var(--c-ink) 60%, transparent), 0 0 14px color-mix(in srgb, var(--c-amber) 26%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--c-cream) 75%, transparent);
+  --accent-soft: color-mix(in srgb, var(--c-amber) 14%, transparent);
+  --accent-line: color-mix(in srgb, var(--c-amber) 80%, transparent);
+  --accent-glow: color-mix(in srgb, var(--c-amber) 38%, transparent);
+  --accent-halo: color-mix(in srgb, var(--c-amber) 12%, transparent);
+  --accent-halo-strong: color-mix(in srgb, var(--c-amber) 22%, transparent);
+  --selected-glow: inset 0 0 14px color-mix(in srgb, var(--c-amber) 16%, transparent), 0 0 12px color-mix(in srgb, var(--c-amber) 24%, transparent);
+  --selected-tint: linear-gradient(90deg, color-mix(in srgb, var(--c-amber) 20%, transparent), color-mix(in srgb, var(--c-amber) 6%, transparent));
+  --switch-on-shadow: inset 0 1px 0 color-mix(in srgb, var(--c-cream) 55%, transparent), 0 0 8px color-mix(in srgb, var(--c-amber) 28%, transparent);
+  --focus: var(--c-gold-light); /* 鍵盤焦點外框 */
+  --focus-glow: color-mix(in srgb, var(--c-amber) 70%, transparent);
+  --focus-ring: color-mix(in srgb, var(--c-amber) 20%, transparent);
+  --focus-ring-soft: color-mix(in srgb, var(--c-amber) 10%, transparent);
+  --select-line: var(--c-gold-light); /* 預覽區選取框 */
+  --select-shadow: color-mix(in srgb, var(--c-ink) 60%, transparent);
+  --handle-fill: var(--c-cream);
+
+  /* ---- 狀態：危險＝酒紅、已儲存＝松綠、提醒＝金光 ---- */
+  --danger: #e58a80; /* 酒紅提亮：深底上的字與圖示（#8c3b3b 本身在深底上太暗、讀不清） */
+  --danger-soft: color-mix(in srgb, var(--c-wine) 26%, transparent);
+  --danger-soft-hover: color-mix(in srgb, var(--c-wine) 42%, transparent);
+  --danger-line: color-mix(in srgb, var(--danger) 55%, transparent);
+  --danger-halo: color-mix(in srgb, var(--c-wine) 22%, transparent);
+  --danger-grad: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c-wine) 72%, var(--danger)) 0%,
+    var(--c-wine) 60%,
+    color-mix(in srgb, var(--c-wine) 82%, var(--c-ink)) 100%
+  );
+  --danger-grad-hover: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c-wine) 55%, var(--danger)) 0%,
+    color-mix(in srgb, var(--c-wine) 85%, var(--danger)) 60%,
+    var(--c-wine) 100%
+  );
+  --danger-edge: color-mix(in srgb, var(--danger) 70%, transparent);
+  --danger-edge-hover: color-mix(in srgb, var(--danger) 90%, transparent);
+  --danger-shadow: 0 4px 14px color-mix(in srgb, var(--c-ink) 55%, transparent), inset 0 1px 0 color-mix(in srgb, var(--c-cream) 28%, transparent);
+  --success: color-mix(in srgb, var(--c-pine) 58%, var(--c-cream)); /* 松綠提亮：深底上的「已儲存」（#3e6b56 本身在深底上太暗） */
+  --warn: var(--c-gold-light);
+  --warn-line: color-mix(in srgb, var(--c-gold-light) 45%, transparent);
+  --warn-soft: color-mix(in srgb, var(--c-gold-light) 8%, transparent);
+  --gold: var(--c-gold-light); /* 鐳射星星 */
+
+  /* ---- 小色塊、縮圖、透明處的棋盤格 ---- */
+  --swatch-border: color-mix(in srgb, var(--c-cream) 24%, transparent);
+  --swatch-border-hover: color-mix(in srgb, var(--c-cream) 55%, transparent);
+  --swatch-edge: color-mix(in srgb, var(--c-cream) 13%, transparent);
+  --checker-a: color-mix(in srgb, var(--c-warm-gray) 45%, var(--c-ink));
+  --checker-b: color-mix(in srgb, var(--c-wood) 55%, var(--c-ink));
+  --thumb-glow: color-mix(in srgb, var(--c-amber) 15%, transparent); /* 卡片庫格子中間的淡光 */
+  --matte: color-mix(in srgb, var(--c-warm-gray) 72%, var(--c-ink)); /* 反光層縮圖裡「霧面」的示意 */
+  --matte-sheen: color-mix(in srgb, var(--c-cream) 32%, transparent);
+  --pack-grad: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--c-amber) 40%, transparent),
+    color-mix(in srgb, var(--c-wine) 42%, transparent) 60%,
+    color-mix(in srgb, var(--c-amber) 30%, transparent)
+  );
+  --pack-grad-hover: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--c-amber) 56%, transparent),
+    color-mix(in srgb, var(--c-wine) 58%, transparent) 60%,
+    color-mix(in srgb, var(--c-amber) 44%, transparent)
+  );
+  --pk-glow: color-mix(in srgb, var(--c-amber) 22%, transparent); /* 開一包：卡包後面的暖光 */
+  --pk-halo: color-mix(in srgb, var(--c-amber) 28%, transparent);
+
+  /* ---- 卡片內容的示意（不跟介面換色）：鐳射彩虹＝「會反光」、卡身預設色（model/create.ts 的 bodyColor） ---- */
+  --holo-pink: #ff6b9d;
+  --holo-gold: #ffd36b;
+  --holo-blue: #4aa8ff;
+  --holo-rainbow: linear-gradient(135deg, #ff6b9d, #ffd36b 38%, #8ff0d0 60%, #4aa8ff 80%, #b26bff);
+  --holo-tint: linear-gradient(135deg, rgba(255, 82, 158, 0.22), rgba(255, 217, 82, 0.22) 50%, rgba(56, 158, 255, 0.22));
+  --holo-row-tint: linear-gradient(100deg, rgba(255, 107, 157, 0.07), rgba(255, 211, 107, 0.05) 45%, rgba(74, 168, 255, 0.07));
+  --rainbow-conic: conic-gradient(#ff6b6b, #ffd166, #6be38f, #3cc8e2, #8e7bff, #ff6bd6, #ff6b6b); /* 「自選顏色」的色環 */
+  --card-body-default: #1b2033;
+
+  /* 大圓角 */
+  --radius: 16px;
+  --radius-sm: 10px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-family: system-ui, 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 頁面背景（DESIGN §5.1）：木桌工坊圖（public/stages/desk.webp，和「工作桌」舞台同一張）整頁鋪滿、壓暗＋輕微模糊，
+   面板的霧面玻璃透出它。圖畫在 body::before（固定定位、四邊多出 48px，模糊的邊緣在畫面外、不會露出一圈淡色）；
+   z-index −1：在 html 的底色上面、所有內容下面。圖讀不到時看到的是 html 的深木棕漸層。 */
+html {
+  background: var(--page-fallback);
+}
+
+body {
+  background: transparent;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -48px;
+  z-index: -1;
+  background: url("/stages/desk.webp") 50% 50% / cover no-repeat;
+  filter: blur(5px) brightness(0.58) saturate(0.95);
+  pointer-events: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.icon {
+  flex: none;
+}
+
+/* ---------- 版面 ---------- */
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+/* T-828e：欄寬固定成視窗寬（minmax(0, 1fr)）：頁首放不下時（很長的卡名、英日韓「沒存到」＋〔匯出備份〕）
+   卡名照設計變成「…」，不會把整個頁面撐得比視窗寬、右欄被推出畫面（原本 auto 欄會被頁首的內容撐開，中文長卡名也會） */
+.app {
+  height: 100%;
+  min-width: 1024px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+}
+
+.workspace {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 284px minmax(0, 1fr) 304px;
+  gap: 12px;
+}
+
+/* 面板：半透明暖深棕（霧面玻璃：背景模糊透出木桌）＋細金銅邊（頂邊打光比較亮）＋淡淡內光＋柔和陰影 */
+.panel,
+.topbar {
+  background: linear-gradient(180deg, var(--panel-top), var(--panel));
+  border: 1px solid var(--border);
+  border-top-color: var(--border-glow);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+/* ---------- 頁首 ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding: 8px 12px 8px 14px;
+  position: relative;
+  z-index: 5;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-right: 4px;
+}
+
+.brand-logo {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 2px 6px var(--drop-shadow));
+  user-select: none;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brand-name {
+  margin: 0;
+  color: var(--title);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+}
+
+.brand-tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+/* 視窗不夠寬時副標先收起來，把位置留給卡名（M4 頁首多了卡名、存檔狀態、匯出） */
+@media (max-width: 1360px) {
+  .brand-tagline {
+    display: none;
+  }
+
+  /* T-828e：英日韓「沒存到」＋〔匯出備份〕比中文長很多，1280 寬時卡名會被擠到只剩「…」（日文還會把〔匯出〕擠出畫面）
+     → 只在沒存到的時候把左上角的名稱字收起來（留圖示），位置讓給卡名和提醒；中文放得下，照舊 */
+  html:not(:lang(zh-Hant)) .topbar:has(.save-status[data-status='error']:not([hidden])) .brand-text {
+    display: none;
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+.history-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.dropdown {
+  position: relative;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 8px;
+}
+
+/* 中間：卡名（點一下就能改）＋存檔狀態小字（DESIGN 7.1） */
+.topbar-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-name-box {
+  min-width: 0;
+  display: flex;
+}
+
+.card-name {
+  min-width: 0;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-strong);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: text;
+}
+
+.card-name:hover {
+  background: var(--hover);
+  border-color: var(--control-border);
+}
+
+.card-name .icon {
+  color: var(--muted);
+}
+
+.card-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-name-input {
+  width: min(320px, 100%);
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-sm);
+  background: var(--inset);
+  color: var(--text-strong);
+  font-size: 17px;
+  font-weight: 600;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.card-name-input:focus-visible {
+  outline: none;
+}
+
+.save-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.save-status[data-status='saved'] {
+  color: var(--success);
+}
+
+.save-status[data-status='saving'] {
+  color: var(--text);
+}
+
+.save-status[data-status='error'] {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.btn.btn-sm {
+  height: 30px;
+  padding: 0 10px;
+}
+
+.btn.backup-btn {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--text-strong);
+}
+
+.btn.backup-btn:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-soft-hover);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  padding: 8px;
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--border);
+  border-top-color: var(--border-glow);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 40px var(--shadow-deep), var(--inner-light);
+}
+
+.menu-head {
+  margin: 4px 8px 8px;
+  color: var(--muted);
+}
+
+.menu-right {
+  left: auto;
+  right: 0;
+}
+
+/* 340：轉動影片的一行說明（T-504）不換行 */
+.export-menu {
+  width: 340px;
+}
+
+.menu-empty {
+  margin: 6px 8px 8px;
+  color: var(--muted);
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--line);
+}
+
+/* 匯出選單裡的「透明背景」勾選（和上面的 PNG 圖片是一組，往右縮排對齊文字） */
+.menu-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px 8px 48px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.menu-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--text);
+  outline: none;
+}
+
+.menu-item .icon {
+  color: var(--accent);
+}
+
+.menu-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-title {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.menu-detail {
+  color: var(--muted);
+}
+
+/* ---------- 按鈕 ---------- */
+
+/* 次要按鈕：深底細金邊＋頂邊一點內光；主要按鈕：琥珀金實心（拋光金屬：上亮下深）、深色字 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  box-shadow: var(--inner-light);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--control-hover);
+  border-color: var(--control-border-hover);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent-grad);
+  border-color: var(--accent-edge);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow: var(--accent-shadow);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-grad-hover);
+  border-color: var(--accent-edge-hover);
+  box-shadow: var(--accent-shadow-hover);
+}
+
+.btn.primary:disabled {
+  box-shadow: none;
+}
+
+.btn-block {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* 圖示按鈕：深底方形（DESIGN §5.1）；滑過淡金邊 */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--icon-btn);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  background: var(--icon-btn);
+  border-color: var(--row-border-hover);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---------- 面板共用 ---------- */
+
+.panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-left {
+  padding: 12px;
+  gap: 12px;
+}
+
+.panel-right {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.panel-right,
+.list-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.panel-section {
+  padding: 12px 16px 16px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-strong);
+}
+
+.panel-title .icon {
+  color: var(--accent);
+}
+
+.panel-sub,
+.panel-count {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.panel-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-count.is-full {
+  color: var(--danger);
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 0 16px;
+}
+
+.empty-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.help {
+  margin: 0;
+  color: var(--muted);
+}
+
+.note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--muted);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--inset);
+}
+
+.note .icon {
+  margin-top: 1px;
+}
+
+/* ---------- 分段按鈕 ---------- */
+
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--inset);
+  border: 1px solid var(--line);
+}
+
+.seg-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.seg-btn:hover {
+  color: var(--text);
+}
+
+/* 分頁選中＝金色實心、深色字（DESIGN §5.1 規格板） */
+.seg-btn.is-selected {
+  background: var(--accent-grad);
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-shadow);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.seg-btn.is-selected .icon {
+  color: var(--accent-ink);
+}
+
+.seg-count {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--badge);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.seg-btn.is-selected .seg-count {
+  background: var(--badge-on);
+  color: var(--accent-ink);
+}
+
+/* ---------- 圖層清單 ---------- */
+
+.list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+.layer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.layer-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 6px 6px;
+  border: 1px solid var(--row-border);
+  border-radius: 12px;
+  background: var(--row-bg);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+/* T-831：每一列自己有深底（像一張張小卡），列與列之間原本的細分隔線不畫了 */
+.layer-row:hover {
+  background: var(--row-bg-hover);
+  border-color: var(--row-border-hover);
+}
+
+.layer-row.is-selected {
+  background: var(--selected-tint), var(--row-bg);
+  border-color: var(--accent-line);
+  box-shadow: var(--selected-glow);
+}
+
+.layer-grip {
+  display: flex;
+  justify-content: center;
+  color: var(--muted);
+  opacity: 0.6;
+  cursor: grab;
+  touch-action: none;
+}
+
+.layer-row:hover .layer-grip {
+  opacity: 1;
+}
+
+.layer-row.is-base .layer-grip {
+  visibility: hidden;
+}
+
+.layer-thumb-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px var(--drop-shadow-soft);
+  /* 棋盤格：看得出哪裡是透明的 */
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 50% / 12px 12px;
+}
+
+.layer-row.is-selected .layer-thumb-wrap {
+  border-color: var(--accent-line);
+}
+
+.layer-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.layer-row.is-base .layer-thumb {
+  cursor: pointer;
+  object-fit: cover;
+}
+
+/* 混合模式不是正常時，縮圖下緣的小標示（T-408）：不擋拖拉（滑鼠穿過去給縮圖） */
+.layer-tag {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px 0;
+  background: var(--chip-bg);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: none;
+}
+
+.layer-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.layer-name {
+  width: 100%;
+  min-width: 0;
+  padding: 1px 6px;
+  margin-left: -6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  cursor: text;
+}
+
+.layer-name:hover {
+  border-color: var(--line);
+}
+
+.layer-name:focus {
+  outline: none;
+  border-color: var(--accent-line);
+  background: var(--inset);
+}
+
+/* T-828e：不截字——放不下就換行（英文 Background 在清單有捲軸時差幾 px：照字典斷字加連字號，斷不了才硬斷）；
+   中文「深度 80」「背景」都放得下，照舊一行 */
+.layer-sub {
+  color: var(--muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.layer-actions {
+  display: flex;
+}
+
+.layer-actions .btn-icon {
+  width: 32px;
+}
+
+.layer-eye[data-state='off'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.layer-remove:hover {
+  color: var(--danger);
+}
+
+.layer-row.is-hidden .layer-thumb-wrap,
+.layer-row.is-hidden .layer-text {
+  opacity: 0.42;
+}
+
+.layer-row.is-dragging {
+  z-index: 3;
+  transform: translateY(var(--drag-y, 0));
+  background: var(--panel-solid);
+  border-color: var(--accent-line);
+  box-shadow: 0 10px 24px var(--shadow-deep), 0 0 14px var(--accent-glow);
+  transition: none;
+  cursor: grabbing;
+}
+
+.layer-row.is-swap-target {
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+}
+
+.list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 14px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--dashed);
+  border-radius: var(--radius-sm);
+  background: var(--inset);
+}
+
+.list-empty .empty-note {
+  margin: 6px 0 0;
+}
+
+.panel-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- 欄位：滑桿、開關、色塊 ---------- */
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-title,
+.field-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.group-title {
+  color: var(--text-strong);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field.is-disabled {
+  opacity: 0.4;
+}
+
+.field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.field-value {
+  min-width: 48px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--inset);
+  color: var(--text-strong);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  margin-top: -2px;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.slider {
+  --fill: 50%;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* 軌道：已填的部分是琥珀金漸層，其餘是深色凹槽；把手是金色的小圓球（拖的時候、鍵盤焦點才發光） */
+.slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background:
+    var(--slider-fill) 0 0 / var(--fill) 100% no-repeat,
+    var(--track);
+  box-shadow: var(--track-shade);
+}
+
+.slider.bipolar::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, transparent calc(50% - 1px), var(--tick) calc(50% - 1px), var(--tick) calc(50% + 1px), transparent calc(50% + 1px)),
+    var(--track);
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--knob);
+  border: 2px solid var(--knob-rim);
+  box-shadow: 0 1px 4px var(--drop-shadow);
+}
+
+.slider:active::-webkit-slider-thumb {
+  box-shadow: 0 1px 4px var(--drop-shadow), 0 0 10px var(--accent-glow);
+}
+
+.slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  box-shadow: var(--track-shade);
+}
+
+.slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--slider-fill);
+}
+
+.slider.bipolar::-moz-range-progress {
+  background: transparent;
+}
+
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--knob);
+  border: 2px solid var(--knob-rim);
+  box-shadow: 0 1px 4px var(--drop-shadow);
+}
+
+.slider:active::-moz-range-thumb {
+  box-shadow: 0 1px 4px var(--drop-shadow), 0 0 10px var(--accent-glow);
+}
+
+.slider:disabled {
+  cursor: not-allowed;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 8px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+.switch-state {
+  order: -1;
+  min-width: 1.2em;
+  color: var(--muted);
+}
+
+/* 開關：關＝深色凹槽＋暖灰圓點在左；開＝琥珀金（頂邊高光、淡淡的光）＋奶油白圓點在右＋「開」字 */
+.switch-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--track);
+  border: 1px solid var(--track-border);
+  box-shadow: var(--track-shade);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--knob-off);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.switch.is-on .switch-track {
+  background: var(--accent-grad);
+  border-color: var(--accent-edge);
+  box-shadow: var(--switch-on-shadow);
+}
+
+.switch.is-on .switch-knob {
+  transform: translateX(18px);
+  background: var(--knob-on);
+}
+
+.switch.is-on .switch-state {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.frame-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+
+.frame-detail.is-off {
+  opacity: 0.55;
+}
+
+/* ---------- 鐳射（DESIGN §3）：星星圖示用暖金色，代表「會反光」 ---------- */
+
+.holo-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.holo-title .icon {
+  color: var(--gold);
+}
+
+.note-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.note-warn {
+  color: var(--text);
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+}
+
+.note-warn > .icon {
+  color: var(--warn);
+}
+
+/* 圖層清單的鐳射開關：開＝填色金星＋淡彩虹底；關＝灰色空心加斜線 */
+.layer-holo[data-state='on'] {
+  color: var(--gold);
+  background: var(--holo-tint);
+}
+
+.layer-holo[data-state='on'] path:first-child {
+  fill: currentColor;
+}
+
+.layer-holo[data-state='off'] {
+  color: var(--muted);
+}
+
+/* 衝出卡片的層整層不反光（T-411b）：變淡、按了不改，滑過說明（title） */
+.layer-holo[data-state='locked'],
+.layer-holo[data-state='locked']:hover {
+  color: var(--muted);
+  background: none;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 右欄反光層面板的勾選（T-417）＝左欄的星星：同樣的樣子 */
+.foil-check[data-state='on'] {
+  color: var(--gold);
+  background: var(--holo-tint);
+}
+
+.foil-check[data-state='on'] path:first-child {
+  fill: currentColor;
+}
+
+.foil-check[data-state='off'] {
+  color: var(--muted);
+}
+
+.foil-check[data-state='locked'],
+.foil-check[data-state='locked']:hover {
+  color: var(--muted);
+  background: none;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 多一個開關時：藏起拖拉把手（從縮圖一樣可以拖）、按鈕縮窄一點，名字才放得下 */
+.layer-list.show-holo .layer-row {
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+}
+
+.layer-list.show-holo .layer-grip {
+  display: none;
+}
+
+.layer-list.show-holo .layer-actions .btn-icon {
+  width: 30px;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--swatch-border);
+  background: var(--swatch, transparent);
+  cursor: pointer;
+}
+
+.swatch:hover {
+  border-color: var(--swatch-border-hover);
+}
+
+.swatch.is-selected {
+  border-color: var(--bg-deep);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 10px var(--accent-glow);
+}
+
+.swatch-custom {
+  background: var(--rainbow-conic);
+  border-color: transparent;
+}
+
+.swatch-custom-dot {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--swatch, var(--panel-solid));
+  border: 2px solid var(--panel-solid);
+}
+
+.swatch-custom.is-selected .swatch-custom-dot {
+  border-color: var(--bg-deep);
+}
+
+.swatch-picker {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* ---------- 鐳射色彩（T-310）：七個選項＝小色塊漸層＋名字；自訂＝4 個顏色格＋顏色表 ---------- */
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.palette-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px 6px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1.25;
+}
+
+.palette-opt:hover {
+  background: var(--control-hover);
+  color: var(--text);
+}
+
+.palette-opt.is-selected {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  box-shadow: var(--selected-glow);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.palette-strip {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--strip, transparent);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+}
+
+/* T-828e：英日韓的名字比較長（Classic rainbow…）→ 放不下就換行，不截字（中文都短，照舊一行） */
+.palette-name {
+  overflow-wrap: break-word;
+  text-align: center;
+}
+
+.palette-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.palette-cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.palette-cell {
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  border: 2px solid var(--swatch-border);
+  background: var(--swatch, transparent);
+  cursor: pointer;
+}
+
+.palette-cell:hover {
+  border-color: var(--swatch-border-hover);
+}
+
+.palette-cell.is-open {
+  border-color: var(--bg-deep);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 10px var(--accent-glow);
+}
+
+.color-table {
+  position: relative;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-solid);
+}
+
+/* 指向正在換的那一格 */
+.color-table::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: var(--caret, 12%);
+  width: 12px;
+  height: 12px;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+/* ---------- 不透明度與混合模式（T-408，DESIGN §3）：一列一個選項＝白話名（原名）＋一句用途；選中＝金框發光；不能用的變淡 ---------- */
+
+.blend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.blend-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.blend-opt:hover:not(:disabled) {
+  background: var(--control-hover);
+}
+
+.blend-opt.is-selected {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  box-shadow: var(--selected-glow);
+  color: var(--text-strong);
+}
+
+.blend-opt:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.blend-name {
+  font-weight: 600;
+}
+
+.blend-orig {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.blend-use {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.blend-opt.is-selected .blend-orig,
+.blend-opt.is-selected .blend-use {
+  color: var(--text);
+}
+
+/* 上傳沒有透明的圖、已有底圖時的確認框（T-408）：四個按鈕排在文字下面，放不下就換行 */
+.confirm-upload {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.confirm-upload .confirm-actions {
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+}
+
+/* 「（黑色變透明）」貼著前面的字，顏色淡一點 */
+.confirm-choice-sub {
+  margin-left: -8px;
+  color: var(--muted);
+}
+
+/* ---------- 文字圖層（右欄「文字」小節、左欄〔加文字〕） ---------- */
+
+.foot-btns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.foot-btns .add-text {
+  width: auto;
+  padding: 0 14px;
+}
+
+/* T-828e：英日韓〔上傳圖片〕（Upload images／画像を追加／이미지 올리기）放不下，原本圖示和字擠進按鈕邊距、英文還超出框
+   → 字換成兩行（按鈕高度不變，44px 放得下兩行）；中文一行，照舊 */
+.foot-btns .btn {
+  white-space: normal;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.text-panel {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.text-input {
+  width: 100%;
+  min-height: 64px;
+  max-height: 160px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--inset);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+
+.text-input::placeholder {
+  color: var(--muted);
+}
+
+.font-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.font-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 58px;
+  padding: 6px 4px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.font-btn:hover {
+  background: var(--control-hover);
+}
+
+.font-btn.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  box-shadow: var(--selected-glow);
+}
+
+.font-sample {
+  font-size: 19px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.font-name {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+/* ---------- 中間：舞台 ---------- */
+
+.stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-top-color: var(--border-glow);
+  border-radius: var(--radius);
+  background: var(--stage-bg);
+  box-shadow: var(--panel-shadow);
+  overflow: hidden;
+}
+
+/* 舞台背景：這張卡正面底圖放大、模糊、壓暗＋暗角，只當氣氛，不比卡片搶眼；在 3D 預覽後面、不接滑鼠 */
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+
+.stage-backdrop-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 放大一點，模糊後的邊緣才不會透出一圈淡色 */
+  transform: scale(1.18);
+  filter: blur(32px) saturate(1.2) brightness(0.66);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  user-select: none;
+}
+
+.stage-backdrop.has-image .stage-backdrop-img.is-ready {
+  opacity: 1;
+}
+
+/* 展示廳（T-410）：不用底圖模糊版，整個預覽區換成展示廳的深藍底色（3D 畫光柱、地板、浮著的卡） */
+.stage.is-gallery {
+  background: var(--gallery-bg);
+}
+
+.stage.is-gallery .stage-backdrop {
+  opacity: 0;
+}
+
+/* 暗角＋一層深藍：中間透一點，四周壓暗 */
+.stage-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 75% 70% at 50% 44%, rgba(6, 12, 32, 0.06) 0%, rgba(6, 12, 32, 0.3) 55%, rgba(3, 7, 20, 0.82) 100%);
+}
+
+.stage-view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+}
+
+.preview-host {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.preview-host.is-dragging {
+  cursor: grabbing;
+}
+
+.preview-host canvas {
+  display: block;
+}
+
+.overlay-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 開啟時 3D 還沒畫出來：先顯示這張卡存過的正面縮圖（置中、照卡片比例；圖四邊各有 4% 的空邊，
+   所以高度比 3D 卡片在畫面上的高度〔標準卡約 67%、塔羅約 71%〕多 8%），3D 第一格畫好就淡出 */
+.stage-poster {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: var(--poster-h, 72cqh);
+  max-width: 92cqw;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+.stage-poster.is-fading {
+  opacity: 0;
+}
+
+/* 直接在卡上調圖層：框內 move、四角斜向 resize、框外照舊 grab（轉卡中一律 grabbing） */
+.preview-host:not(.is-dragging)[data-cursor='move'] {
+  cursor: move;
+}
+
+.preview-host:not(.is-dragging)[data-cursor='nwse-resize'] {
+  cursor: nwse-resize;
+}
+
+.preview-host:not(.is-dragging)[data-cursor='nesw-resize'] {
+  cursor: nesw-resize;
+}
+
+/* 選取框與四角把手（不擋滑鼠：按下去做什麼由預覽區判斷） */
+.select-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.select-shadow {
+  fill: none;
+  stroke: var(--select-shadow);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+
+.select-frame {
+  fill: none;
+  stroke: var(--select-line);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.select-handle {
+  r: 7px;
+  fill: var(--handle-fill);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 1px 2px var(--drop-shadow));
+  transition: r 0.12s ease;
+}
+
+.select-handle.is-hot {
+  r: 9.5px;
+}
+
+.fatal {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  max-width: 80%;
+  height: fit-content;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--border);
+  text-align: center;
+  font-size: 15px;
+}
+
+.stage-empty-frame {
+  display: none;
+  position: absolute;
+  inset: 10px;
+  border: 2px dashed var(--dashed-strong);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.stage.is-empty .stage-empty-frame {
+  display: block;
+}
+
+.drop-overlay {
+  display: none;
+  position: absolute;
+  inset: 10px;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  background: var(--scrim-light);
+  pointer-events: none;
+}
+
+.stage.is-drop .drop-overlay {
+  display: flex;
+}
+
+.drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 30px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 0 24px var(--accent-glow);
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.drop-card .icon {
+  color: var(--accent);
+}
+
+.stage-footer {
+  container: footer / inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 22px 18px;
+  /* T-828h：影片／GIF 的選項小框（export-panel.ts）蓋在這一條上面、而且比這一條高；小框開著時 export-panel 在舞台上設 --export-lift
+     （照小框的位置與這張卡的高度算，previewReserve），這一條撐到這麼高、上面的 3D 預覽跟著縮，卡片整張在小框上面。
+     沒設＝0，和以前一樣；內容貼底（和以前同一個位置） */
+  min-height: var(--export-lift, 0px);
+  justify-content: flex-end;
+}
+
+/* 提示列旁邊的〔展示〕按鈕：開著＝琥珀金實心（和主要按鈕一樣），關著＝半透明暖深棕 */
+.stage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.stage-bar .hint-pill {
+  min-width: 0;
+}
+
+.showcase-btn {
+  flex: none;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--panel-top), var(--panel));
+  color: var(--muted);
+  backdrop-filter: blur(10px);
+}
+
+.showcase-btn:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.btn.showcase-btn.is-on,
+.btn.showcase-btn.is-on:hover:not(:disabled) {
+  background: var(--accent-grad);
+  border-color: var(--accent-edge);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow: var(--accent-shadow);
+}
+
+.btn.showcase-btn.is-on:hover:not(:disabled) {
+  background: var(--accent-grad-hover);
+}
+
+/* 提示列：半透明暖深棕底板＋細金銅邊，蓋在模糊背景上也讀得清楚 */
+.hint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 6px 8px 6px 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--panel-top), var(--panel));
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 22px var(--drop-shadow-soft), var(--inner-light);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  white-space: pre-line;
+}
+
+.hint-pill[data-mode='hint'] .hint-icon {
+  color: var(--accent);
+}
+
+.hint-pill > span:nth-child(2) {
+  padding-right: 8px;
+}
+
+.hint-icon {
+  display: flex;
+}
+
+.hint-pill[data-mode='empty'] {
+  color: var(--text);
+  border-color: var(--accent-line);
+}
+
+.hint-pill[data-mode='empty'] .hint-icon,
+.hint-pill[data-mode='info'] .hint-icon {
+  color: var(--accent);
+}
+
+.hint-pill[data-mode='info'] {
+  color: var(--text);
+}
+
+.hint-pill[data-mode='error'] {
+  color: var(--text);
+  border-color: var(--danger-line);
+  background: linear-gradient(0deg, var(--danger-soft), var(--danger-soft)), var(--panel-solid);
+}
+
+.hint-pill[data-mode='error'] .hint-icon {
+  color: var(--danger);
+}
+
+.msg-close {
+  width: 28px;
+  height: 28px;
+}
+
+.confirm {
+  width: 100%;
+  max-width: 720px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--shadow), var(--inner-light), 0 0 20px var(--accent-halo);
+  animation: rise 0.18s ease-out;
+}
+
+.confirm-icon {
+  display: flex;
+  align-self: start;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.confirm-text p {
+  margin: 0;
+}
+
+.confirm-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.confirm-tip,
+.confirm-file {
+  color: var(--muted);
+}
+
+.confirm-file {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 預覽區比較窄時，按鈕換到文字下面，仍然靠右並排 */
+@container footer (max-width: 760px) {
+  .confirm {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .confirm-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- 卡片庫與新卡片面板共用（T-407） ---------- */
+
+/* 蓋在編輯畫面上：深色半透明底（後面的 3D 預覽、自動存照常跑） */
+.lib-overlay,
+.nc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  background: var(--scrim);
+  animation: fade-in 0.16s ease-out;
+}
+
+/* 縮圖上的淡淡鐳射：斜向的彩色光澤，滑鼠移上去變亮、跟著滑鼠跑（--gx、--gy 由 tilt.ts 設） */
+.lib-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 5% / calc(5% / var(--card-hw, 1.3968));
+  background: linear-gradient(
+    115deg,
+    transparent 22%,
+    rgba(255, 196, 160, 0.16) 34%,
+    rgba(255, 170, 215, 0.24) 42%,
+    rgba(160, 228, 255, 0.28) 50%,
+    rgba(196, 255, 222, 0.18) 58%,
+    transparent 72%
+  );
+  background-size: 260% 260%;
+  background-position: var(--gx, 28%) var(--gy, 28%);
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background-position 0.3s ease;
+}
+
+/* ---------- 我的卡片（卡片庫，DESIGN 7.2） ---------- */
+
+.lib-overlay {
+  padding: 12px;
+}
+
+.lib-panel {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--sheet-top), var(--sheet));
+  border: 1px solid var(--border);
+  border-top-color: var(--border-glow);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  overflow: hidden;
+  animation: rise 0.2s ease-out;
+}
+
+.lib-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lib-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+}
+
+.lib-sub {
+  margin: 0;
+  color: var(--muted);
+}
+
+.lib-save:not(:empty)::before {
+  content: '・';
+}
+
+.lib-save.is-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.lib-head .btn-lg {
+  font-size: 16px;
+}
+
+.lib-new {
+  min-width: 150px;
+}
+
+.lib-warn {
+  margin: 14px 20px 0;
+}
+
+.lib-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 22px 84px;
+}
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 26px 22px;
+}
+
+.lib-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 縮圖格：固定 2:3，裡面的卡片照自己的比例（塔羅比較窄）；perspective 讓傾斜看起來是立體的 */
+.lib-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: radial-gradient(ellipse 72% 58% at 50% 46%, var(--thumb-glow), transparent 78%), var(--inset);
+  cursor: pointer;
+  perspective: 700px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  /* 縮圖最寬只到格子寬（.lib-art-img 的 cqw，T-411b） */
+  container-type: size;
+}
+
+.lib-thumb:hover {
+  border-color: var(--control-border);
+}
+
+.lib-card.is-current .lib-thumb {
+  border-color: var(--accent-line);
+  box-shadow: var(--selected-glow);
+}
+
+.lib-art {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* T-807：高 86%（標準卡、塔羅牌照舊），寬的卡（正方形、橫式）改由寬 93% 限制，格子大小不變 */
+  height: min(86cqh, calc(93cqw * var(--card-hw, 1.3968)));
+  aspect-ratio: 1 / var(--card-hw, 1.3968);
+  translate: -50% -50%;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.35s ease;
+}
+
+.lib-thumb:hover .lib-art {
+  transform: rotateX(var(--rx, 4deg)) rotateY(var(--ry, -6deg)) scale(1.04);
+  transition-duration: 0.12s;
+}
+
+.lib-thumb:hover .lib-sheen,
+.nc-opt:hover .lib-sheen {
+  opacity: 1;
+}
+
+/* 存著的縮圖四邊各有卡高 4% 的透明空邊（render captureCard）：放大到 108% 置中，卡片剛好填滿 .lib-art。
+   破框卡（T-411）的縮圖包含衝出卡片的部分：往兩旁衝出很多時圖會比格子寬，最寬只到格子寬（加空邊 108%），
+   照比例縮在裡面（T-411b：不然會蓋到隔壁的格子）；一般的卡不受影響 */
+.lib-art-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: calc(100% * (1 + 0.08 * max(1, 1 / var(--card-hw, 1.3968))));
+  width: auto;
+  max-width: 108cqw;
+  object-fit: contain;
+  translate: -50% -50%;
+  filter: drop-shadow(0 10px 14px var(--drop-shadow));
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 還沒有縮圖：照比例的卡片外形＋卡身顏色 */
+.lib-art-plain {
+  position: absolute;
+  inset: 0;
+  border-radius: 5% / calc(5% / var(--card-hw, 1.3968));
+  background-color: var(--card-body-default);
+  box-shadow: 0 10px 18px var(--drop-shadow), inset 0 0 0 1px var(--swatch-edge);
+}
+
+.lib-badge {
+  display: none;
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  padding: 2px 11px;
+  border-radius: 999px;
+  background: var(--accent-grad);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px var(--drop-shadow), var(--inner-light);
+}
+
+.lib-card.is-current .lib-badge {
+  display: block;
+}
+
+/* 剛複製出來的那張：亮一下 */
+.lib-card.is-new .lib-thumb {
+  animation: lib-new 1.8s ease-out;
+}
+
+@keyframes lib-new {
+  0%,
+  35% {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 28px var(--accent-glow);
+  }
+}
+
+.lib-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.lib-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lib-time {
+  color: var(--muted);
+}
+
+.lib-name-input {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 7px;
+  background: var(--inset);
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.lib-name-input:focus-visible {
+  outline: none;
+}
+
+.lib-more {
+  flex: none;
+}
+
+.lib-more[aria-expanded='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.lib-more:disabled {
+  opacity: 0.4;
+  cursor: progress;
+}
+
+.lib-loading {
+  margin: 48px 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.lib-empty {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.lib-empty-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-halo-strong), transparent 70%);
+  color: var(--accent);
+}
+
+.lib-empty-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.lib-empty-tip {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
+.lib-empty-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 〔⋯〕選單：開在按鈕旁邊（位置由 library.ts 算） */
+.menu.lib-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  z-index: 2;
+}
+
+.menu-item.is-danger .icon,
+.menu-item.is-danger .menu-title {
+  color: var(--danger);
+}
+
+.menu-item.is-danger:hover,
+.menu-item.is-danger:focus-visible {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+/* 刪除確認框：置中、主次按鈕在文字下面靠右並排 */
+.lib-confirm-back {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--scrim-light);
+  animation: fade-in 0.14s ease-out;
+}
+
+.confirm.lib-confirm {
+  max-width: 600px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 16px;
+  padding: 20px 22px;
+  border-color: var(--danger-line);
+  box-shadow: 0 24px 60px var(--shadow-deep), var(--inner-light), 0 0 24px var(--danger-halo);
+}
+
+.lib-confirm .confirm-title {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.lib-confirm .confirm-actions {
+  grid-column: 1 / -1;
+}
+
+.confirm-icon.is-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* 危險（刪除）：酒紅實心、奶油白字 */
+.btn.danger {
+  background: var(--danger-grad);
+  border-color: var(--danger-edge);
+  color: var(--text-strong);
+  font-weight: 700;
+  box-shadow: var(--danger-shadow);
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: var(--danger-grad-hover);
+  border-color: var(--danger-edge-hover);
+}
+
+/* 卡片庫開著時的訊息（提示列被蓋住了） */
+.lib-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 2;
+  max-width: calc(100% - 40px);
+  translate: -50% 0;
+  animation: rise 0.18s ease-out;
+}
+
+.lib-drop {
+  z-index: 2;
+}
+
+.lib-panel.is-drop .lib-drop {
+  display: flex;
+}
+
+/* ---------- 新卡片面板（DESIGN 7.3） ---------- */
+
+/* 新卡片面板只蓋中間：後面多一點模糊，視線集中在選項上 */
+.nc-overlay {
+  z-index: 45;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.nc-panel {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 26px 26px;
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--border);
+  border-top-color: var(--border-glow);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px var(--shadow-deep), var(--inner-light);
+  animation: rise 0.2s ease-out;
+}
+
+.nc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nc-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nc-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.nc-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+.nc-body {
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+}
+
+.nc-divider {
+  flex: none;
+  width: 1px;
+  background: var(--line);
+}
+
+.nc-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nc-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.nc-group-title .icon {
+  color: var(--accent);
+}
+
+.nc-group-tip {
+  margin: 2px 0 12px;
+  color: var(--muted);
+}
+
+.nc-options {
+  display: flex;
+  gap: 14px;
+}
+
+/* 每個選項：上面一張照比例的卡（滑鼠移上去微微傾斜），下面名字；卡的高度跟著視窗大小，1024×700 也放得下 */
+.nc-opt {
+  --stage-h: clamp(140px, min(22vh, 14vw), 190px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 12px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  background: var(--control);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.nc-opt:hover,
+.nc-opt:focus-visible {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  box-shadow: var(--selected-glow);
+  outline: none;
+}
+
+.nc-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--stage-h) * 63 / 88 + 10px);
+  height: var(--stage-h);
+  margin-bottom: 10px;
+  perspective: 700px;
+}
+
+.nc-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  aspect-ratio: 63 / 88;
+  border-radius: 5% / 3.58%;
+  overflow: hidden;
+  box-shadow: 0 12px 22px var(--drop-shadow);
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.35s ease;
+}
+
+.nc-opt:hover .nc-art {
+  transform: rotateX(var(--rx, 4deg)) rotateY(var(--ry, -6deg)) scale(1.04);
+  transition-duration: 0.12s;
+}
+
+/* 空白卡：深藍卡身（＝新卡片的預設卡身色，卡片內容、不跟介面換色）＋虛線框＋中間一個加號 */
+.nc-blank {
+  background: radial-gradient(ellipse 80% 70% at 50% 40%, #2a4178, #131f42 70%);
+  outline: 2px dashed var(--dashed-strong);
+  outline-offset: -8px;
+  color: var(--accent);
+}
+
+/* 範例卡（T-605b）：縮圖是卡片檔裡的預覽圖（卡片正面放在舞台底色上，四邊留一點空；衝出卡片的部分也在圖裡）。
+   整張圖照原比例放進來（標準卡的預覽圖 377×512），底色和預覽圖的舞台底色一樣，不切掉衝出卡片的龍翼 */
+.nc-sample {
+  aspect-ratio: 377 / 512;
+  border-radius: 8px;
+  background: var(--stage-bg);
+}
+
+.nc-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.nc-name {
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.nc-detail {
+  color: var(--muted);
+}
+
+/* 範例縮圖載入中（T-409）：先顯示會流動的光澤佔位，圖讀好、解碼好才淡入 */
+.nc-sample .nc-preview {
+  transition: opacity 0.3s ease;
+}
+
+.nc-sample.is-loading .nc-preview {
+  opacity: 0;
+}
+
+.nc-sample.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(160, 228, 255, 0.16) 44%,
+    rgba(255, 190, 230, 0.13) 54%,
+    transparent 68%
+  );
+  background-size: 260% 100%;
+  animation: nc-shimmer 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes nc-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -20% 0;
+  }
+}
+
+/* ---------- 工坊在另一個分頁開著（T-409） ---------- */
+
+/* 蓋在最上面：後面變灰、不能按；中間一個小框說明＋〔在這裡繼續〕 */
+.away-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--scrim-strong);
+  backdrop-filter: grayscale(0.85) blur(2px);
+  animation: fade-in 0.2s ease-out;
+}
+
+.away-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  padding: 26px 30px 24px;
+  text-align: center;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--shadow), var(--inner-light), 0 0 24px var(--accent-halo);
+  animation: rise 0.2s ease-out;
+}
+
+.away-icon {
+  display: flex;
+  padding: 12px;
+  margin-bottom: 4px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.away-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.away-tip {
+  margin: 0;
+  color: var(--muted);
+}
+
+.away-unsaved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--danger);
+}
+
+.away-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* 開啟時在等另一個分頁存好（T-412）：圖示輕輕呼吸，表示還在進行 */
+.away-overlay.is-waiting .away-icon {
+  animation: away-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes away-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+}
+
+/* ---------- 轉一圈的影片／GIF 匯出中（T-504） ---------- */
+
+/* 蓋住整個視窗、不能點穿（匯出期間不能編輯）；不加深色底，3D 預覽照常看得清楚；頁首與左右欄變淡 */
+.export-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  cursor: progress;
+}
+
+.app.is-exporting .topbar,
+.app.is-exporting .panel-left,
+.app.is-exporting .panel-right {
+  opacity: 0.42;
+  filter: saturate(0.6);
+  transition: opacity 0.2s, filter 0.2s;
+}
+
+/* 小框：預覽區下方提示列的位置（不擋卡片），左右對齊預覽區中間 */
+.export-box {
+  position: absolute;
+  left: var(--export-x, 50%);
+  bottom: var(--export-bottom, 24px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 12px 14px 12px 12px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--shadow), var(--inner-light), 0 0 24px var(--accent-halo);
+  cursor: default;
+  animation: export-rise 0.2s ease-out;
+}
+
+@keyframes export-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.export-icon {
+  display: flex;
+  flex: none;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* 做的時候圖示輕輕呼吸，表示還在進行 */
+.export-overlay:not(.is-done) .export-icon {
+  animation: away-breathe 1.6s ease-in-out infinite;
+}
+
+.export-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.export-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.export-percent {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.export-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.export-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent-grad);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: width 0.15s linear;
+}
+
+.export-cancel {
+  flex: none;
+}
+
+/* 好了！：進度條滿、標題變琥珀金 */
+.export-overlay.is-done .export-title {
+  color: var(--accent);
+}
+
+/* 「好了！」下面的提醒小字（T-514：MP4 的聲音 iPhone 可能播不出來） */
+.export-note {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ---------- 轉動影片的選項（T-509b）：同一個位置，寬一點、矮一點（不蓋到卡片） ---------- */
+
+/* 還在選：游標是一般的箭頭（不是「處理中」） */
+.export-overlay.is-choosing {
+  cursor: default;
+}
+
+.export-box.video-options,
+.export-box.gif-options {
+  --vo-w: min(780px, calc(100vw - 32px));
+  width: var(--vo-w);
+  /* 預覽區窄時不超出視窗左右 */
+  left: clamp(calc(var(--vo-w) / 2 + 16px), var(--export-x, 50%), calc(100vw - var(--vo-w) / 2 - 16px));
+  /* 比進度小框低一點、矮一點：視窗矮（1280×720）時也不蓋到卡片 */
+  bottom: calc(var(--export-bottom, 24px) - 6px);
+  align-items: flex-start;
+  padding: 8px 14px;
+}
+
+.export-overlay .vo-icon {
+  padding: 7px;
+  animation: none;
+}
+
+.vo-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.vo-label {
+  flex: none;
+  color: var(--muted);
+}
+
+/* 長度：三段，每段「8 秒」＋小字「轉 2 圈」 */
+/* T-828e：英文「4 seconds｜1 turn」三段太寬，選了音樂後檔名被擠到看不見 → 這一排放不下時，長度按鈕先縮、
+   小字換到下一行（按鈕變高一點），檔名那塊幾乎不縮（.vo-music 的 flex-shrink）；中文放得下，照舊一行 */
+.segmented.vo-lengths {
+  flex: 0 1 auto;
+  padding: 2px;
+}
+
+.seg-btn.vo-len {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 24px;
+  padding: 0 12px;
+  gap: 0 5px;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+/* T-828e：「4 seconds」「1 turn」各自不拆開（最多兩行），縮不下的再讓檔名那塊縮 */
+.seg-btn.vo-len > span {
+  white-space: nowrap;
+}
+
+.vo-len-detail {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.seg-btn.vo-len.is-selected .vo-len-detail {
+  color: var(--accent-ink-soft);
+}
+
+/* 格式（T-514）：〔MP4（推薦，手機也能播）〕〔WebM〕；這個瀏覽器不能做 MP4 時 MP4 變淡、旁邊小字 */
+.segmented.vo-formats {
+  flex: none;
+  padding: 2px;
+}
+
+.seg-btn.vo-fmt {
+  flex: none;
+  height: 24px;
+  padding: 0 12px;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.vo-fmt-detail {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.seg-btn.vo-fmt.is-selected .vo-fmt-detail {
+  color: var(--accent-ink-soft);
+}
+
+.seg-btn.vo-fmt:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.seg-btn.vo-fmt:disabled:hover {
+  color: var(--muted);
+}
+
+.vo-fmt-note {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.vo-music-label {
+  margin-left: auto;
+}
+
+/* 選好的音樂：檔名＋長度，像一個小標籤 */
+.vo-music {
+  flex-shrink: 0.05; /* T-828e：同一排放不下時讓長度按鈕先縮（見上面 .seg-btn.vo-len），檔名這塊幾乎不縮 */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+.vo-music .icon {
+  flex: none;
+  color: var(--accent);
+}
+
+.vo-music-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vo-music-length {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.vo-music.is-reading .vo-music-length {
+  animation: away-breathe 1.6s ease-in-out infinite;
+}
+
+.vo-remove,
+.vo-pick {
+  flex: none;
+}
+
+/* 從第幾秒開始：滑桿＋數字＋說明＋〔試聽〕 */
+.vo-range-input {
+  flex: 1;
+  min-width: 90px;
+}
+
+.vo-num {
+  flex: none;
+  width: 64px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--inset);
+  color: var(--text-strong);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.vo-num:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+
+.vo-num:disabled {
+  opacity: 0.5;
+}
+
+.vo-unit {
+  flex: none;
+  color: var(--muted);
+}
+
+.vo-range-text {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vo-preview {
+  flex: none;
+}
+
+.btn.vo-preview.is-on {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+.vo-error {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.vo-foot {
+  gap: 8px;
+}
+
+.vo-note {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.btn.vo-cancel,
+.btn.vo-go {
+  flex: none;
+  height: 32px;
+}
+
+/* ---------- 動作（T-512）：〔轉一圈〕〔左右擺動〕＋擺動角度；影片與 GIF 的選項小框共用 ---------- */
+
+.segmented.mo-motions,
+.segmented.go-sizes {
+  flex: none;
+  padding: 2px;
+}
+
+.seg-btn.mo-btn {
+  flex: none;
+  height: 24px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+/* 擺動角度：滑桿＋數字＋「度」＋小字（選擺動才出現） */
+.mo-angle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 6px;
+}
+
+.mo-angle-range {
+  flex: 1;
+  min-width: 90px;
+}
+
+.vo-num.mo-angle-num {
+  width: 56px;
+}
+
+.mo-note {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---------- GIF 動圖的選項（T-512）：大小三段，每段「中（寬 400）」＋預估「約 4.9 MB」 ---------- */
+
+.seg-btn.go-size {
+  flex: none;
+  height: 24px;
+  padding: 0 12px;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.go-size-est {
+  min-width: 52px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.seg-btn.go-size.is-selected .go-size-est {
+  color: var(--accent-ink-soft);
+}
+
+.go-size-est.is-estimating {
+  animation: away-breathe 1.6s ease-in-out infinite;
+}
+
+/* 作業系統設了「減少動態效果」（DESIGN §8.3）：縮圖不傾斜、面板與確認框直接出現（不滑入、不淡入）、
+   淡入淡出與位置大小的轉場直接到位（T-608 補齊；tests/reduced-motion-css.test.ts 檢查每個會動的選擇器都有關掉） */
+@media (prefers-reduced-motion: reduce) {
+  .lib-art,
+  .lib-thumb:hover .lib-art,
+  .nc-art,
+  .nc-opt:hover .nc-art {
+    transform: none;
+    transition: none;
+  }
+
+  .switch-knob,
+  .stage-backdrop,
+  .stage-backdrop-img,
+  .stage-poster,
+  .select-handle,
+  .lib-sheen,
+  .nc-sample .nc-preview,
+  .app.is-exporting .topbar,
+  .app.is-exporting .panel-left,
+  .app.is-exporting .panel-right {
+    transition: none;
+  }
+
+  .confirm,
+  .lib-overlay,
+  .nc-overlay,
+  .lib-panel,
+  .nc-panel,
+  .lib-toast,
+  .lib-confirm-back,
+  .lib-card.is-new .lib-thumb,
+  .nc-sample.is-loading::after,
+  .away-overlay,
+  .away-box,
+  .away-overlay.is-waiting .away-icon,
+  .export-box,
+  .export-overlay:not(.is-done) .export-icon,
+  .vo-music.is-reading .vo-music-length,
+  .go-size-est.is-estimating {
+    animation: none;
+  }
+
+  .export-fill {
+    transition: none;
+  }
+}
+
+/* 開發模式 __holo.mark() 的標點（正式版不會出現） */
+.debug-mark {
+  position: fixed;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff2d55;
+  box-shadow: 0 0 0 1.5px #fff;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ---------- 反光層（T-417，DESIGN「反光層」）：圖層清單最上面固定一列、右欄面板 ---------- */
+
+.foil-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+  padding: 6px 4px 6px 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--holo-row-tint), var(--row-bg);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.foil-row:hover {
+  background: var(--holo-row-tint), var(--row-bg-hover);
+  border-color: var(--row-border-hover);
+}
+
+.foil-row.is-selected {
+  background: var(--selected-tint), var(--row-bg);
+  border-color: var(--accent-line);
+  box-shadow: var(--selected-glow);
+}
+
+/* 三道彩虹弧：外紅、中金、內藍 */
+.foil-icon {
+  display: flex;
+  justify-content: center;
+}
+
+.foil-icon path:nth-child(1),
+.foil-title .icon path:nth-child(1) {
+  stroke: var(--holo-pink);
+}
+
+.foil-icon path:nth-child(2),
+.foil-title .icon path:nth-child(2) {
+  stroke: var(--holo-gold);
+}
+
+.foil-icon path:nth-child(3),
+.foil-title .icon path:nth-child(3) {
+  stroke: var(--holo-blue);
+}
+
+.foil-row.is-selected .foil-thumb-wrap {
+  border-color: var(--accent-line);
+}
+
+/* 目前形狀的小縮圖：整面＝彩虹、用圖層形狀＝中間一塊彩虹、黑白圖＝那張圖、關＝霧面 */
+.foil-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.foil-thumb[data-shape='full'] {
+  background: var(--holo-rainbow);
+}
+
+.foil-thumb[data-shape='layers'] {
+  background:
+    radial-gradient(ellipse 30% 38% at 50% 56%, transparent 96%, var(--matte) 100%),
+    var(--holo-rainbow);
+}
+
+.foil-thumb[data-shape='none'] {
+  background:
+    linear-gradient(120deg, transparent 30%, var(--matte-sheen) 48%, transparent 66%),
+    var(--matte);
+}
+
+.foil-mask {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.foil-name {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.foil-row.is-hidden .foil-thumb-wrap,
+.foil-row.is-hidden .layer-text {
+  opacity: 0.5;
+}
+
+.foil-layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--muted);
+}
+
+.foil-layer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.foil-layer .btn-icon {
+  flex: none;
+  width: 32px;
+}
+
+.foil-layer-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.foil-mask-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.foil-mask-frame {
+  flex: none;
+  width: 56px;
+  height: 78px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 50% / 12px 12px;
+}
+
+.foil-mask-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.foil-frame.is-off {
+  opacity: 0.55;
+}
+
+/* 形狀三選一：右欄窄，「用圖層形狀」「上傳黑白圖」排一列會被擠成兩行 → 直的排，一個選項一行 */
+.foil-panel .segmented {
+  flex-direction: column;
+}
+
+.foil-panel .seg-btn {
+  justify-content: flex-start;
+  height: 34px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+/* ---------- 導覽與操作說明（T-606，DESIGN §8.1） ---------- */
+
+/* 頁首〔？〕：圓形小按鈕，說明面板開著時亮起來 */
+.btn.help-btn {
+  flex: none;
+  width: 38px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.btn.help-btn.is-open {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* 說明面板：從右邊滑出，貼著頁首下方（頁首上下共 86px），寬 380px；1280 寬時只蓋住右欄和預覽區最右邊一點，卡片中間不被擋。
+   T-831：幾乎不透明的暖深棕（會蓋到 3D 預覽，不用背景模糊：每一格都要重算模糊太吃效能） */
+.help-panel {
+  position: fixed;
+  top: 86px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 34;
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-top-color: var(--border-glow);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--sheet-top), var(--sheet));
+  box-shadow: var(--panel-shadow);
+  animation: help-in 0.22s ease-out;
+}
+
+@keyframes help-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.help-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 10px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.help-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.help-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 18px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.help-section {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.help-section:last-child {
+  border-bottom: none;
+}
+
+.help-section-title {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.help-lines,
+.help-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.help-line {
+  position: relative;
+  padding-left: 15px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.help-line::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0.72em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-line);
+}
+
+/* 鍵盤：左邊鍵帽、右邊說明 */
+.help-key-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+
+.help-keycaps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.help-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--control-border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--control);
+  color: var(--text-strong);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.help-key-text {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.help-foot {
+  flex: none;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.help-restart {
+  width: 100%;
+}
+
+/* 第一次使用的導覽：整層不接滑鼠（卡片照樣能轉、能調），外框也不接，只有小卡接 */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+}
+
+.tour-ring {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 0 0 4px var(--accent-soft), 0 0 24px var(--accent-glow), inset 0 0 18px var(--accent-soft);
+  pointer-events: none;
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+  animation: tour-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tour-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 0 24px var(--accent-glow), inset 0 0 18px var(--accent-soft);
+  }
+  50% {
+    box-shadow: 0 0 0 7px var(--accent-soft), 0 0 34px var(--accent-glow), inset 0 0 22px var(--accent-soft);
+  }
+}
+
+/* 小卡：右下（圈右欄那一步在左下），寬 300px，離預覽區的圈邊有一小段距離 */
+.tour-card {
+  position: absolute;
+  bottom: 24px;
+  width: 300px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  box-shadow: var(--shadow), 0 0 22px var(--accent-soft);
+  pointer-events: auto;
+  animation: tour-in 0.25s ease-out;
+}
+
+.tour-card[data-dock='right'] {
+  right: 20px;
+}
+
+.tour-card[data-dock='left'] {
+  left: 20px;
+}
+
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tour-text {
+  margin: 0 0 14px;
+  color: var(--text-strong);
+  font-size: 15px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tour-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.tour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--track);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.tour-dot.is-done {
+  background: var(--accent-line);
+}
+
+.tour-dot.is-on {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transform: scale(1.25);
+}
+
+.tour-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-actions .btn {
+  height: 34px;
+  padding: 0 14px;
+}
+
+/* 作業系統設了「減少動態效果」：面板、導覽直接出現，外框不閃、不滑（DESIGN §8.3） */
+@media (prefers-reduced-motion: reduce) {
+  .help-panel,
+  .tour-card,
+  .tour-ring {
+    animation: none;
+  }
+
+  .tour-ring,
+  .tour-dot {
+    transition: none;
+  }
+}
+
+/* ---------- 卡框樣式（T-416，DESIGN「卡框樣式」）：兩個選項並排，每個＝迷你卡片縮圖＋名字；雕花邊角的縮圖四角用素材當遮罩、鏡射成四角 ---------- */
+
+.frame-styles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.frame-style-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.frame-style-opt:hover {
+  background: var(--control-hover);
+}
+
+.frame-style-opt.is-selected {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  box-shadow: var(--selected-glow);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.frame-style-thumb {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 42px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, #26375f, #0f1934);
+  box-shadow: inset 0 0 0 1.5px #d9b45a;
+}
+
+.frame-style-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #fff1c1, #d4af37 55%, #8a6a1e);
+  -webkit-mask: url("/textures/frame-corner.webp") 0 0 / 100% 100% no-repeat;
+  mask: url("/textures/frame-corner.webp") 0 0 / 100% 100% no-repeat;
+}
+
+.frame-style-corner.is-tl {
+  top: 0;
+  left: 0;
+}
+
+.frame-style-corner.is-tr {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.frame-style-corner.is-bl {
+  bottom: 0;
+  left: 0;
+  transform: scaleY(-1);
+}
+
+.frame-style-corner.is-br {
+  right: 0;
+  bottom: 0;
+  transform: scale(-1, -1);
+}
+
+/* ---------- AI 自動去背（T-703）：上傳確認框、AI 的問題、進行中的小面板（都在預覽區下方，不蓋卡片） ---------- */
+
+/* 確認框第一排：三顆等寬的大按鈕（圖示＋名字＋一行說明）；下面是 AI 說明小字、第二排小按鈕＋〔取消〕 */
+.confirm-upload .confirm-main {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.btn.ai-choice {
+  height: auto;
+  min-height: 66px;
+  padding: 10px 12px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
+  text-align: left;
+  white-space: normal;
+}
+
+.ai-choice-icon {
+  display: flex;
+  flex: none;
+  margin-top: 1px;
+}
+
+.btn.ai-choice:not(.primary) .ai-choice-icon {
+  color: var(--accent);
+}
+
+.ai-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ai-choice-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.ai-choice-label {
+  font-weight: 700;
+}
+
+.ai-choice-sub {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.btn.ai-choice.primary .ai-choice-sub {
+  color: var(--accent-ink);
+  opacity: 0.8;
+}
+
+/* 「即將推出」：小圓角標籤（按鈕本身已經變淡） */
+.ai-choice-tag {
+  padding: 1px 7px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 模型還沒下載／另一張還在去背：第一排下面一行說明 */
+.confirm-ai-note {
+  grid-column: 1 / -1;
+  margin: -2px 0 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.confirm-bottom {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.confirm-bottom > .btn {
+  margin-left: auto;
+}
+
+.confirm-minor-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.btn.confirm-minor {
+  height: 34px;
+  padding: 0 12px;
+}
+
+.confirm-minor-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* AI 進行中的小面板：和匯出面板同一個樣子，但在提示列上面、不擋後面的編輯 */
+.ai-progress {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 12px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-solid));
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--shadow), var(--inner-light), 0 0 24px var(--accent-halo);
+  animation: rise 0.18s ease-out;
+}
+
+.ai-progress-icon {
+  display: flex;
+  flex: none;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  animation: away-breathe 1.6s ease-in-out infinite;
+}
+
+.ai-progress-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-progress-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ai-progress-percent {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.ai-progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent-grad);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: width 0.15s linear;
+}
+
+.ai-progress-cancel {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-progress,
+  .ai-progress-icon {
+    animation: none;
+  }
+
+  /* 推論中的進度條照預估時間慢慢走（程式設的 transition）：減少動態時直接跳到位 */
+  .ai-progress-fill {
+    transition: none !important;
+  }
+}
+
+/* ---------- 舞台場景（T-415）：右欄「舞台」六個選項排成 3×2（小圖示＋名字）；選魔法陣／水鏡／星雲時預覽區換成那個場景的底色 ---------- */
+
+.segmented.stage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented.stage-grid .seg-btn {
+  flex-direction: column;
+  gap: 3px;
+  height: auto;
+  min-height: 58px;
+  padding: 7px 2px 6px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.segmented.stage-grid .seg-btn .icon {
+  flex: none;
+}
+
+/* 魔法陣：深夜藍，上方稍亮（3D 畫地上的陣與光點） */
+.stage.is-magic {
+  background: radial-gradient(ellipse 90% 75% at 50% 36%, #12224e 0%, #0a1536 44%, #050b1e 74%, #03060f 100%);
+}
+
+/* 水鏡：夜空由上往下漸亮到水平線（約在預覽區中間，3D 的水面在遠處淡進這裡），頂端一點點月光 */
+.stage.is-water {
+  background:
+    radial-gradient(ellipse 36% 24% at 50% 4%, rgba(196, 216, 255, 0.14) 0%, rgba(196, 216, 255, 0) 100%),
+    linear-gradient(180deg, #060e26 0%, #0c1c44 28%, #17326a 43%, #0d1d42 52%, #050b1e 100%);
+}
+
+/* 星雲：幾乎全黑的深空（3D 畫漩渦、星點、光暈） */
+.stage.is-nebula {
+  background: radial-gradient(ellipse 85% 75% at 50% 42%, #0d1132 0%, #070a1f 52%, #03040d 100%);
+}
+
+.stage.is-magic .stage-backdrop,
+.stage.is-water .stage-backdrop,
+.stage.is-nebula .stage-backdrop {
+  opacity: 0;
+}
+
+/* ---------- 鍵盤焦點（T-607，DESIGN §8.2）---------- */
+/* 只在用鍵盤時顯示（:focus-visible，滑鼠點的不會出現）：2px 金光外框（全域那條，上面）＋淡淡的琥珀金外光；深色底上看得到。
+   外光用 drop-shadow（不動元素自己的 box-shadow：選中的色塊、開著的按鈕靠它顯示狀態，不能被蓋掉）。 */
+button:focus-visible,
+[role='button']:focus-visible,
+[role='radio']:focus-visible,
+[role='switch']:focus-visible,
+[role='checkbox']:focus-visible,
+input[type='range']:focus-visible,
+input[type='number']:focus-visible,
+input[type='color']:focus-visible {
+  filter: drop-shadow(0 0 5px var(--focus-glow));
+}
+
+/* 3D 預覽區可以拿焦點（Tab 走得到）：外框畫在裡面（外面是舞台邊緣）＋一圈淡淡的內光；canvas 不能加 filter，所以用內陰影 */
+.preview-host:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -5px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 7px var(--focus-ring-soft), inset 0 0 24px var(--focus-ring);
+}
+
+/* 這幾個原本把外框關掉、只靠底色或邊框變化：和滑鼠滑過看起來一樣分不出來，鍵盤焦點補回外框 */
+.menu-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.nc-opt:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* 清單裡的列在捲動區裡面，外框往裡畫才不會被切掉 */
+.layer-row:focus-visible,
+.foil-row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  filter: none;
+}
+
+/* ---------- 一鍵卡片風格（T-801，DESIGN §3）：右欄「卡片」最上面，六顆小按鈕排成 3×2，每顆＝斜的小色票＋名字 ----------
+   不是持續的單選：設定剛好等於某個風格時那一顆亮起來（aria-pressed），微調過就都不亮。鍵盤焦點外框用上面 T-607 那一組。 */
+
+.card-styles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.card-style-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px 6px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  color: var(--muted);
+  font: inherit;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.card-style-opt:hover {
+  background: var(--control-hover);
+  color: var(--text);
+}
+
+.card-style-opt.is-selected {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  box-shadow: var(--selected-glow);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.card-style-swatch {
+  height: 22px;
+  border-radius: 4px;
+  background: var(--swatch, transparent);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+}
+
+/* T-828e：同色票名字，放不下就換行（Rainbow foil…），不截字 */
+.card-style-name {
+  overflow-wrap: break-word;
+  text-align: center;
+}
+
+/* ---------- 線稿高光（T-802，DESIGN §1「線稿高光」）：右欄「沿線條反光」開關；這層開了衝出卡片時整塊變淡（按了不改，滑過說明） ---------- */
+
+.lineart-block.is-locked {
+  opacity: 0.55;
+}
+
+.lineart-block.is-locked .switch {
+  cursor: not-allowed;
+}
+
+/* ---------- 剪裁遮色片（T-803，DESIGN §3「剪裁遮色片」）：右欄「只畫在下面那層上」開關（變淡時按了不改、滑過說明）；
+   剪裁中的層深度滑桿變淡、標題旁邊寫「跟著下面那層」；左欄剪裁中的層往右縮一格、前面一個小箭頭 ↳、拖把手變淡（不能拖） ---------- */
+
+.clip-block.is-locked {
+  opacity: 0.55;
+}
+
+.clip-block.is-locked .switch {
+  cursor: not-allowed;
+}
+
+.depth-follow {
+  margin: 0 auto 0 8px;
+  padding: 0 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text-strong);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.depth-block.is-following .slider,
+.depth-block.is-following .field-ends,
+.depth-block.is-following .field-value {
+  opacity: 0.4;
+}
+
+.depth-block.is-following .slider {
+  cursor: not-allowed;
+}
+
+.layer-row.is-clipped {
+  margin-left: 22px;
+}
+
+.layer-clip-arrow {
+  position: absolute;
+  top: 50%;
+  left: -21px;
+  display: flex;
+  color: var(--accent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.layer-row.is-clipped .layer-grip {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.layer-row.is-clipped:hover .layer-grip {
+  opacity: 0.35;
+}
+
+.layer-row.is-clipped .layer-thumb {
+  cursor: pointer;
+}
+
+/* ---------- 卡片故事（T-804，DESIGN「卡片故事」）---------- */
+
+/* 右欄：文字框下面右邊的字數「12／60」 */
+.story-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -2px;
+}
+
+.story-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.story-count.is-full {
+  color: var(--accent);
+}
+
+/* 預覽區：卡片兩側的直排詩句（3D 預覽上面、選取框下面；不接滑鼠，拖卡片旁邊照樣轉卡）。
+   位置、字級、最大高度由 ui/story.ts 每次重排時寫進來；沒有淡入動畫（減少動態） */
+.story-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.story-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: normal;
+  line-height: 1.5;
+  letter-spacing: 0.25em;
+  color: rgba(244, 248, 255, 0.88);
+  text-shadow:
+    0 0 6px rgba(196, 222, 255, 0.55),
+    0 0 18px rgba(130, 180, 255, 0.35);
+}
+
+/* 匯出錄影中（轉動影片／GIF 的選項與進度面板開著）不顯示 */
+.app.is-exporting .story-layer {
+  display: none;
+}
+
+/* ---------- 雙圖光柵（T-805，DESIGN「雙圖光柵」）：右欄「變身圖」小節（〔加上變身圖〕、加了之後小縮圖＋〔換一張〕〔拿掉〕）；
+   衝出卡片的層小節變淡、有變身圖的層「衝出卡片」開關變淡（按了不改、滑過說明）；左欄縮圖右上角的小「雙」 ---------- */
+
+.alt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alt-frame {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 50% / 12px 12px;
+}
+
+.alt-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.alt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.alt-block.is-locked,
+.breakout-block.is-locked {
+  opacity: 0.55;
+}
+
+.alt-block.is-locked .btn,
+.breakout-block.is-locked .switch {
+  cursor: not-allowed;
+}
+
+.layer-alt-tag {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  padding: 0 3px;
+  border-radius: 6px;
+  background: var(--chip-bg);
+  box-shadow: 0 0 0 1px var(--accent-line);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ---- T-806 透明卡套：匯出選單「透明背景」旁邊的「包含卡套」（同一排；卡片開著卡套才出現） ---- */
+.menu-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 20px;
+  row-gap: 4px;
+  padding: 2px 10px 8px 48px;
+}
+
+.menu-checks .menu-check {
+  padding: 0;
+}
+
+/* ---- T-807 卡片比例：右欄「比例」五選一（CSS 畫的小卡片外形）＋自訂寬高；新卡片面板的五種空白卡 ----
+   --card-hw＝卡片的高／寬（ui 用 model/aspect.ts 的 aspectHeight 設）；卡片庫格子、開啟時的縮圖也用它（上面各自的規則） */
+.aspect-shape {
+  --shape-box: 22px;
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  width: calc(var(--shape-box) * min(1, 1 / var(--card-hw, 1.3968)));
+  height: calc(var(--shape-box) * min(1, var(--card-hw, 1.3968)));
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+}
+
+.aspect-shape.is-custom {
+  border-style: dashed;
+}
+
+.aspect-picker {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--inset);
+  border: 1px solid var(--line);
+}
+
+/* T-828e：改成兩列的格子（上＝22px 放外形、貼底；下＝名字），英日韓（檔尾）名字可以換行、按鈕跟著變高；
+   中文照舊固定 58px、整組貼底，排出來和原本的 flex 貼底一模一樣（外形底邊離名字 6px） */
+.aspect-opt {
+  display: grid;
+  grid-template-rows: 22px auto;
+  justify-items: center;
+  align-content: end;
+  row-gap: 6px;
+  min-width: 0;
+  height: 58px;
+  padding: 6px 0 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+.aspect-opt .aspect-shape {
+  align-self: end;
+}
+
+.aspect-opt:hover {
+  color: var(--text);
+}
+
+.aspect-opt.is-selected {
+  background: var(--accent-grad);
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-shadow);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.aspect-opt.is-selected .aspect-shape {
+  color: var(--accent-ink);
+  background: var(--badge-on);
+}
+
+.aspect-custom {
+  margin-top: 8px;
+}
+
+.aspect-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aspect-size-label {
+  color: var(--muted);
+}
+
+.aspect-times {
+  color: var(--muted);
+  padding: 0 2px;
+}
+
+.aspect-num {
+  width: 72px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--inset);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.aspect-num:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+
+.aspect-num.is-invalid,
+.aspect-num.is-invalid:focus {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.aspect-error {
+  margin: 6px 0 0;
+  color: var(--danger);
+}
+
+.aspect-help {
+  margin-top: 6px;
+}
+
+/* 新卡片面板：五種空白卡排一排（卡片小一點），範例在下面一排 */
+.nc-body {
+  flex-direction: column;
+}
+
+.nc-divider {
+  width: auto;
+  height: 1px;
+}
+
+.nc-blank-opt {
+  --stage-h: clamp(84px, min(13vh, 8.5vw), 120px);
+}
+
+.nc-blank-opt .nc-stage {
+  width: calc(var(--stage-h) + 10px);
+}
+
+.nc-art.nc-blank {
+  width: calc(var(--stage-h) * min(1, 1 / var(--card-hw, 1.3968)));
+  height: calc(var(--stage-h) * min(1, var(--card-hw, 1.3968)));
+  aspect-ratio: auto;
+  border-radius: 5% / calc(5% / var(--card-hw, 1.3968));
+}
+
+.nc-art.nc-blank.is-custom {
+  outline-style: dotted;
+}
+
+.nc-blank-opt.is-open {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+/* 自訂的寬高＋〔建立〕＋說明排同一行（面板不要變太高）：寬高框那一組拆開來當這一行的項目 */
+.nc-custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.nc-custom .aspect-custom {
+  display: contents;
+}
+
+.nc-custom .aspect-size {
+  order: 0;
+}
+
+.nc-create {
+  order: 1;
+  height: 34px;
+}
+
+.nc-custom .aspect-error {
+  order: 2;
+  margin: 0;
+}
+
+/* ---- T-808 開一包：新卡片面板最下面〔開一包〕＋蓋在面板上的開包畫面（ui/pack-opening.ts） ----
+   版面：上方標題、提示、〔跳過〕；中間卡包與卡片（原點在中間，單位 --pk-size＝疊著時卡片的長邊）；扇形時下方〔再開一包〕〔關閉〕。
+   卡包：同一張圖用 clip-path 切成上緣一條＋本體（撕開線在畫布高 15.05%，見 public/brand/prompts/card-pack.md）。
+   每張卡：.pk-slot 位移（--x、--y）→ .pk-card 轉角度、縮放（--r、--s）→ .pk-flip 翻面（背面／正面兩片）。
+   轉場與動畫只動 transform、opacity（tests/ui-pack-opening.test.ts 檢查）；減少動態效果時全部關掉（最後一段）。 */
+.nc-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 〔開一包〕：琥珀金到酒紅的斜漸層（比一般按鈕熱鬧一點，和主要按鈕分得出來） */
+.btn.nc-pack-btn {
+  flex: none;
+  background: var(--pack-grad);
+  border-color: var(--accent-line);
+  color: var(--text-strong);
+  font-weight: 700;
+  box-shadow: 0 4px 14px var(--drop-shadow), var(--inner-light);
+}
+
+.btn.nc-pack-btn:hover:not(:disabled) {
+  background: var(--pack-grad-hover);
+  border-color: var(--accent-edge);
+}
+
+.nc-pack-btn .icon {
+  color: var(--gold);
+}
+
+/* 開包畫面：蓋住整個視窗的暗底（在新卡片面板裡面，所以 Esc、Tab 由面板一起管） */
+.pk-overlay {
+  --pk-size: min(40vh, 23vw, 300px);
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "top" "stage" "actions";
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 46% 52% at 50% 50%, var(--pk-glow), transparent 72%),
+    radial-gradient(ellipse 90% 80% at 50% 45%, var(--c-wood), var(--c-ink) 78%);
+  animation: fade-in 0.2s ease-out;
+}
+
+.pk-top {
+  grid-area: top;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px 0;
+}
+
+.pk-title {
+  justify-self: start;
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+}
+
+.pk-hint {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.btn.pk-skip {
+  justify-self: end;
+}
+
+.pk-stage {
+  grid-area: stage;
+  position: relative;
+}
+
+.pk-actions {
+  grid-area: actions;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 4px 0 30px;
+}
+
+/* 整個中間都能點（點卡包撕開、點一下翻開）；鍵盤焦點的外框畫在卡包／卡片的位置 */
+.pk-tap {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.pk-tap:focus-visible {
+  outline: none;
+}
+
+.pk-tap:focus-visible::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--pk-size) * 0.86);
+  height: calc(var(--pk-size) * 1.14);
+  translate: -50% -50%;
+  border-radius: 18px;
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  box-shadow: 0 0 24px var(--accent-glow);
+  pointer-events: none;
+}
+
+.pk-overlay[data-phase='sealed'] .pk-tap:focus-visible::after {
+  width: calc(var(--pk-size) * 1.02);
+  height: calc(var(--pk-size) * 1.32);
+}
+
+/* ---- 卡包（544×744，袋身佔 32～512 × 32～712） ---- */
+.pk-pack {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 40;
+  width: calc(var(--pk-size) * 1.45 * 544 / 744);
+  height: calc(var(--pk-size) * 1.45);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+/* 撕開：袋身往下沉、淡掉，卡片從開口露出來 */
+.pk-overlay[data-phase='torn'] .pk-pack {
+  transform: translateY(80%);
+  opacity: 0;
+  transition: transform 0.8s cubic-bezier(0.55, 0, 0.8, 0.35) 0.45s, opacity 0.4s ease 0.85s;
+}
+
+.pk-pack-float {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 22px 30px var(--drop-shadow)) drop-shadow(0 0 34px var(--pk-halo));
+  animation: pk-float 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes pk-float {
+  from {
+    transform: translateY(-1.6%) rotate(-1.1deg);
+  }
+  to {
+    transform: translateY(1.6%) rotate(1.1deg);
+  }
+}
+
+.pk-pack-img {
+  position: absolute;
+  inset: 0;
+  background: url("/brand/card-pack.webp") center / 100% 100% no-repeat;
+}
+
+/* 本體從撕開線往下；上緣那一條多切 0.3%（兩片疊一點，接縫才不會透光） */
+.pk-pack-body {
+  clip-path: inset(15.05% 0 0 0);
+}
+
+.pk-pack-strip {
+  clip-path: inset(0 0 84.65% 0);
+  transform-origin: 88% 12%;
+}
+
+/* 撕開：上緣那一條往右上飛走、轉一下、淡掉 */
+.pk-overlay[data-phase='torn'] .pk-pack-strip {
+  transform: translate(16%, -36%) rotate(-24deg);
+  opacity: 0;
+  transition: transform 0.65s cubic-bezier(0.2, 0.7, 0.3, 1), opacity 0.3s ease 0.35s;
+}
+
+/* 撕開的那一刻：撕開線閃一下 */
+.pk-pack-tear {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 14.5%;
+  height: 1.2%;
+  background: radial-gradient(closest-side, #ffffff, rgba(170, 225, 255, 0.75) 45%, transparent);
+  opacity: 0;
+}
+
+.pk-overlay[data-phase='torn'] .pk-pack-tear {
+  animation: pk-tear 0.55s ease-out both;
+}
+
+@keyframes pk-tear {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.1);
+  }
+  35% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.06) translateY(-80%);
+  }
+}
+
+/* 淡淡的光掃過：只畫在袋子上（用卡包圖本身當遮罩） */
+.pk-pack-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask: url("/brand/card-pack.webp") center / 100% 100% no-repeat;
+  mask: url("/brand/card-pack.webp") center / 100% 100% no-repeat;
+  mix-blend-mode: screen;
+}
+
+.pk-pack-shine-bar {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 46%;
+  background: linear-gradient(
+    100deg,
+    transparent 10%,
+    rgba(190, 225, 255, 0.42) 40%,
+    rgba(255, 210, 245, 0.36) 55%,
+    transparent 85%
+  );
+  transform: translateX(-130%) skewX(-12deg);
+  animation: pk-sweep 3.4s ease-in-out 0.5s infinite;
+}
+
+@keyframes pk-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-12deg);
+  }
+  55%,
+  100% {
+    transform: translateX(260%) skewX(-12deg);
+  }
+}
+
+.pk-overlay[data-phase='torn'] .pk-pack-shine {
+  opacity: 0;
+}
+
+/* ---- 卡片 ---- */
+.pk-cards {
+  position: absolute;
+  inset: 0;
+}
+
+.pk-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transform: translate(calc(var(--x, 0) * var(--pk-size)), calc(var(--y, 0) * var(--pk-size)));
+  transition: transform 0.65s cubic-bezier(0.22, 0.8, 0.28, 1) var(--pk-delay, 0ms), opacity 0.2s ease var(--pk-delay, 0ms);
+}
+
+.pk-slot.is-shown {
+  opacity: 1;
+}
+
+/* 格子照卡片比例：直的卡高＝--pk-size，橫的卡寬＝--pk-size（--card-hw＝高／寬） */
+.pk-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--pk-size) * min(1, 1 / var(--card-hw, 1.3968)));
+  height: calc(var(--pk-size) * min(1, var(--card-hw, 1.3968)));
+  translate: -50% -50%;
+  perspective: 1400px;
+  transform: rotate(calc(var(--r, 0) * 1deg)) scale(var(--s, 1));
+  transition: transform 0.65s cubic-bezier(0.22, 0.8, 0.28, 1) var(--pk-delay, 0ms);
+}
+
+.pk-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+  transition: transform 0.6s cubic-bezier(0.3, 0.6, 0.25, 1);
+}
+
+.pk-slot.is-up .pk-flip {
+  transform: rotateY(0deg);
+}
+
+.pk-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 5% / calc(5% / var(--card-hw, 1.3968));
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* 背面：素色卡背的紋樣（灰階、亮度在 128 上下）加強對比後疊在深藍紫卡身上，外加一圈細亮邊 */
+.pk-back {
+  overflow: hidden;
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, #2b3576, #161d47 55%, #0e1333);
+  box-shadow: 0 14px 26px rgba(0, 3, 14, 0.55), inset 0 0 0 1px rgba(176, 200, 255, 0.24);
+}
+
+.pk-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("/textures/plain-back.webp") center / 100% 100% no-repeat;
+  filter: contrast(3.2);
+  mix-blend-mode: overlay;
+  opacity: 0.9;
+}
+
+.pk-back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    transparent 25%,
+    rgba(255, 190, 230, 0.12) 40%,
+    rgba(160, 230, 255, 0.16) 50%,
+    transparent 64%
+  );
+}
+
+/* 正面：卡片庫縮圖（透明、四邊各有長邊 4% 的空邊）放大到 108% 置中，卡片剛好填滿格子；破框的部分照樣露出來 */
+.pk-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: calc(100% * (1 + 0.08 * max(1, 1 / var(--card-hw, 1.3968))));
+  width: auto;
+  max-width: 150%;
+  translate: -50% -50%;
+  filter: drop-shadow(0 12px 18px var(--drop-shadow));
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 範例：卡片檔的預覽圖（不透明、卡片放在舞台底色上），整張照圖本身的比例放 */
+.pk-front.is-whole {
+  overflow: hidden;
+  background: var(--stage-bg);
+  box-shadow: 0 12px 22px var(--drop-shadow);
+}
+
+.pk-front.is-whole .pk-img {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  translate: none;
+  object-fit: contain;
+  filter: none;
+}
+
+/* 沒有縮圖（或讀不到）：卡身顏色的卡片外形 */
+.pk-plain {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--card-body-default);
+  box-shadow: 0 12px 22px var(--drop-shadow), inset 0 0 0 1px var(--swatch-edge);
+}
+
+/* 翻開時一道彩虹光掃過卡面 */
+.pk-rainbow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.pk-rainbow-bar {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 70%;
+  background: linear-gradient(
+    100deg,
+    transparent 6%,
+    rgba(255, 110, 150, 0.55) 24%,
+    rgba(255, 214, 110, 0.6) 36%,
+    rgba(130, 255, 170, 0.6) 48%,
+    rgba(100, 200, 255, 0.62) 60%,
+    rgba(190, 130, 255, 0.55) 72%,
+    transparent 92%
+  );
+  opacity: 0;
+  transform: translateX(-120%) skewX(-14deg);
+}
+
+.pk-slot.is-new .pk-rainbow-bar {
+  animation: pk-rainbow 0.95s cubic-bezier(0.3, 0.1, 0.3, 1) 0.28s both;
+}
+
+@keyframes pk-rainbow {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-14deg);
+  }
+  18%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(200%) skewX(-14deg);
+  }
+}
+
+/* 扇形：每張下面卡名＋〔打開這張〕（不跟著卡片歪；扇形時卡片縮成 --pk-fan） */
+.pk-label {
+  position: absolute;
+  left: 0;
+  top: calc(var(--pk-size) * var(--pk-fan, 0.72) * min(1, var(--card-hw, 1.3968)) / 2 + 14px);
+  /* 比相鄰兩張標準卡的間距窄一點，長卡名才不會碰到隔壁 */
+  width: calc(var(--pk-size) * var(--pk-fan, 0.72) * 0.6);
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+}
+
+.pk-overlay[data-phase='done'] .pk-label {
+  opacity: 1;
+  transition: opacity 0.35s ease 0.35s;
+}
+
+.pk-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+/* T-828e：英日韓的範例卡名比較長（Starwave Vinylwhale…）→ 換成兩行，不截字 */
+.pk-name {
+  min-width: 0;
+  color: var(--text-strong);
+  font-weight: 650;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+.pk-tag {
+  flex: none;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.btn.pk-open {
+  height: 34px;
+  padding: 0 14px;
+}
+
+/* 作業系統設了「減少動態效果」：直接顯示扇形（ui 那邊也直接跳到最後），沒有滑動、翻面、光掃過 */
+@media (prefers-reduced-motion: reduce) {
+  .pk-overlay,
+  .pk-pack-float,
+  .pk-pack-shine-bar,
+  .pk-overlay[data-phase='torn'] .pk-pack-tear,
+  .pk-slot.is-new .pk-rainbow-bar {
+    animation: none;
+  }
+
+  .pk-overlay[data-phase='torn'] .pk-pack,
+  .pk-overlay[data-phase='torn'] .pk-pack-strip,
+  .pk-slot,
+  .pk-card,
+  .pk-flip,
+  .pk-overlay[data-phase='done'] .pk-label {
+    transition: none;
+  }
+
+  .pk-pack-shine {
+    display: none;
+  }
+}
+
+/* ---------- 效能自動降級（T-809，DESIGN §8.4）：說明面板最下面的開關「電腦跑不動時自動降低畫質」 ---------- */
+
+.help-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.help-setting .field-label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.help-setting .help {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ---------- CD 光碟（T-810，DESIGN「CD 光碟」）：新卡片面板的〔光碟〕外形（圓形、中間有孔，CSS 畫）；
+   光碟時左欄「背面」分頁灰掉（按了清單不換面，卡片照樣翻過去看背面） ---------- */
+
+/* 照真的 CD：直徑 120、孔 15（半徑的 12.5%）、透明圈到 46；孔用遮罩挖空（看得到後面），透明圈畫成淡淡的亮圈＋內緣一圈細銀環 */
+.nc-art.nc-blank.nc-disc {
+  border-radius: 50%;
+  outline-offset: -6px;
+  -webkit-mask: radial-gradient(circle closest-side, transparent 12.5%, #000 13.4%);
+  mask: radial-gradient(circle closest-side, transparent 12.5%, #000 13.4%);
+}
+
+.nc-disc-hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38.33%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, rgba(205, 225, 255, 0.2) 0 91%, rgba(226, 234, 248, 0.85) 91% 100%, transparent 100%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 小加號放在印刷面上（中間是孔、透明圈） */
+.nc-art.nc-disc > .icon {
+  position: absolute;
+  top: 9%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.seg-btn.is-locked {
+  opacity: 0.5;
+}
+
+.seg-btn.is-locked:hover {
+  color: var(--muted);
+}
+
+/* ---------- 局部動態特效（T-811，DESIGN「局部動態特效」）：右欄「動態特效」小節——無／火焰／電光／水波四個選項排一排（小圖示＋名字）、
+   選了特效才出現顏色與強度、速度（左邊一條細線，同卡框的細節）；破框層整個變淡、這一面滿了時三個特效選項變淡 ---------- */
+
+/* T-828e：一樣寬，但字比較長的那格（英文 Lightning）至少要放得下整個字，不擠出框 */
+.segmented.fx-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(min-content, 1fr));
+}
+
+.segmented.fx-list .seg-btn {
+  flex-direction: column;
+  gap: 3px;
+  height: auto;
+  min-height: 54px;
+  padding: 7px 2px 6px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.segmented.fx-list .seg-btn .icon {
+  flex: none;
+}
+
+.seg-btn.fx-opt:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.seg-btn.fx-opt:disabled:hover {
+  color: var(--muted);
+}
+
+.fx-block.is-locked {
+  opacity: 0.55;
+}
+
+.fx-block.is-locked .seg-btn {
+  cursor: not-allowed;
+}
+
+.fx-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+
+/* ---------- T-810b：卡片庫裡的光碟格子（Codex 審查 86dbc23）——滑過的光澤不蓋到光碟外面與孔裡，沒有縮圖時外形也是圓環。
+   縮圖本身（.lib-art-img）不遮不裁：破框的部分可能在圓外。尺寸照真的 CD（直徑 120、孔 15、印刷面內緣 46、外緣 118），
+   遮罩的百分比是對半徑（closest-side）：孔 12.5%、印刷面內緣 38.3%、外緣 98.3% ---------- */
+
+.lib-art.is-disc .lib-sheen {
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(circle closest-side, transparent 12.5%, #000 13.4%);
+  mask: radial-gradient(circle closest-side, transparent 12.5%, #000 13.4%);
+}
+
+.lib-art.is-disc .lib-art-plain {
+  border-radius: 50%;
+  box-shadow: none;
+  -webkit-mask: radial-gradient(circle closest-side, transparent 38.3%, #000 39.2%, #000 98%, transparent 98.6%);
+  mask: radial-gradient(circle closest-side, transparent 38.3%, #000 39.2%, #000 98%, transparent 98.6%);
+}
+
+/* ---------- T-812：影片與 GIF 的選項小框，動作下面多一列「上下」（滑桿＋數字＋「度」＋小字）；轉一圈與左右擺動都顯示 ---------- */
+
+.mo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mo-nod-range {
+  flex: 1;
+  min-width: 90px;
+}
+
+.vo-num.mo-nod-num {
+  width: 56px;
+}
+
+/* 小字比較長：窗口窄時可以縮、不把滑桿擠沒 */
+.mo-nod .mo-note {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* ---------- T-810c 開一包的光碟：沒有縮圖時的外形與翻開的彩虹光是圓環（同卡片庫 T-810b 的遮罩；縮圖本身不裁） ---------- */
+.pk-front.is-disc .pk-plain {
+  border-radius: 50%;
+  box-shadow: none;
+  -webkit-mask: radial-gradient(circle closest-side, transparent 38.3%, #000 39.2%, #000 98%, transparent 98.6%);
+  mask: radial-gradient(circle closest-side, transparent 38.3%, #000 39.2%, #000 98%, transparent 98.6%);
+}
+
+.pk-front.is-disc .pk-rainbow {
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(circle closest-side, transparent 12.5%, #000 13.4%);
+  mask: radial-gradient(circle closest-side, transparent 12.5%, #000 13.4%);
+}
+
+/* ---------- T-814 舞台背景圖：右欄「舞台」六顆按鈕下面一列「背景圖」（〔換成我的圖…〕／小縮圖＋〔換一張〕〔拿掉〕）；
+   預覽區的背景換成這張：鋪滿（cover、置中裁）、不模糊不放大、亮度約 85%＋淡淡暗角，展示廳／魔法陣／星雲的底色不蓋掉它
+   （水鏡的遠景由 3D 畫在水平線上方，CSS 照舊）。 ---------- */
+
+.backdrop-block {
+  gap: 8px;
+}
+
+.backdrop-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backdrop-frame {
+  flex: none;
+  width: 96px;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 50% / 12px 12px;
+}
+
+.backdrop-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.backdrop-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stage.has-backdrop .stage-backdrop {
+  opacity: 1;
+}
+
+.stage-backdrop.is-custom .stage-backdrop-img {
+  transform: none;
+  filter: brightness(0.85);
+}
+
+.stage-backdrop.is-custom::after {
+  background: radial-gradient(ellipse 85% 80% at 50% 46%, rgba(6, 12, 32, 0) 55%, rgba(3, 7, 20, 0.45) 100%);
+}
+
+/* ---------- T-815 水鏡遠景：右欄「舞台」六顆按鈕正下面（只在水鏡顯示）「遠景」三顆小縮圖按鈕〔湖光山峰〕〔水墨山〕〔富士山〕；
+   小縮圖是那三張圖本身（2:1，取中間偏上那一塊：山與月亮）；選中＝金框發光（同風格卡，縮圖不放在金色實心上）；
+   有自己的背景圖時整組變淡（不能按），下面一句說明。 ---------- */
+
+.water-scene-block {
+  gap: 8px;
+}
+
+.water-scene-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border-radius: 11px;
+  background: var(--inset);
+  border: 1px solid var(--line);
+}
+
+.water-scene-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 4px 5px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.water-scene-btn:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.water-scene-btn.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  box-shadow: var(--selected-glow);
+  color: var(--text-strong);
+  font-weight: 650;
+}
+
+.water-scene-frame {
+  display: block;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  border-radius: 6px;
+  /* 圖還沒讀好時：同遠景的夜色 */
+  background: linear-gradient(180deg, #060e26 0%, #0f2350 70%, #0b1630 100%);
+}
+
+.water-scene-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.water-scene-thumb:not([src]) {
+  visibility: hidden;
+}
+
+/* T-828e：英韓的遠景名字比較長（Lake and peaks…）→ 換行，不疊到隔壁 */
+.water-scene-name {
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+.water-scene-btn:disabled {
+  cursor: not-allowed;
+}
+
+.water-scene-grid.is-muted {
+  opacity: 0.4;
+}
+
+/* ---------- T-822 遠景位置：右欄「舞台」小節最下面「位置」（〔左右〕〔上下〕〔大小〕滑桿＋〔置中〕），看得到遠景時才出現；
+   水鏡時〔上下〕變淡（.field.is-disabled）、下面一句說明。
+   預覽區的背景圖照同一個算法擺（render/backdrop.ts 的 farPanCss）：cover 之後 object-position 選「多出來的部分」的哪裡，
+   再以同一點為原點放大（transform-origin＝object-position），所以任何預覽區寬高比都蓋滿、不露空白。
+   只套在自己的背景圖（.is-custom）；底圖模糊版照舊放大 1.18 倍。ui/stage.ts 設 --far-pos、--far-zoom。 ---------- */
+
+.far-pan-block {
+  gap: 8px;
+}
+
+.far-pan-block .far-pan-water-note {
+  margin-top: -2px;
+}
+
+.stage-backdrop.is-custom .stage-backdrop-img {
+  object-position: var(--far-pos, 50% 50%);
+  transform: scale(var(--far-zoom, 1));
+  transform-origin: var(--far-pos, 50% 50%);
+}
+
+/* ---------- T-816 展示廳升級：展示廳、沒有自己的背景圖時，預覽區的 CSS 那層換成畫好的大廳（public/stages/gallery-hall.webp，
+   main 第一次選展示廳才讀，ui/stage.ts 加 is-hall）：鋪滿（cover、置中裁）、不模糊不放大、略壓暗＋暗角（卡片才是主角），
+   不套 T-822 的遠景位置。還沒讀好＝沒有 is-hall，照舊深藍底（.stage.is-gallery）。3D 那邊的石地板換成只疊倒影與光的大廳地板。 ---------- */
+
+.stage.is-gallery .stage-backdrop.is-hall {
+  opacity: 1;
+}
+
+.stage-backdrop.is-hall .stage-backdrop-img {
+  transform: none;
+  object-position: 50% 60%;
+  filter: brightness(0.8) saturate(0.95);
+}
+
+.stage-backdrop.is-hall::after {
+  background:
+    radial-gradient(ellipse 72% 64% at 50% 52%, rgba(6, 12, 32, 0) 42%, rgba(3, 7, 20, 0.5) 100%),
+    linear-gradient(180deg, rgba(4, 8, 22, 0.25) 0%, rgba(4, 8, 22, 0) 32%);
+}
+
+/* ---------- T-825 水面樣子：舞台選水鏡時，右欄「舞台」六顆按鈕下面、「遠景」上面的「水面」：
+   〔夜色〕〔霧白〕兩顆快速套用（左邊一小塊那一組的天色；剛好是那一組時金框發光）、六個滑桿、兩個色票。
+   預覽區的天空跟著霧（ui/stage.ts：水鏡而且〔霧〕大於 0 才有 .has-water-mist，--water-mist-color＝霧色、--water-mist＝0～1）：
+   夜空的每一段照濃淡混進霧色（水平線那一段混最多）、卡片後面亮四周暗（T-825c）；沒有霧＝和以前一樣（.stage.is-water 那組漸層）。
+   有遠景（三選一或自己的背景圖）時這層被 3D 的遠景蓋住，只有遠景還沒讀好時看得到。 ---------- */
+
+.water-look-block {
+  gap: 8px;
+}
+
+.water-look-preset .water-look-chip {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--swatch-border-hover);
+}
+
+.water-look-preset[data-preset='night'] .water-look-chip {
+  background: linear-gradient(180deg, #0c1c44 0%, #2b4d88 55%, #050b1e 100%);
+}
+
+.water-look-preset[data-preset='mist'] .water-look-chip {
+  background: linear-gradient(180deg, #b6c3c2 0%, #e6e8dc 55%, #5f6a66 100%);
+}
+
+.water-look-preset.is-selected {
+  border-color: var(--accent-line);
+  box-shadow: var(--selected-glow);
+  color: var(--text-strong);
+  font-weight: 650;
+}
+
+.water-look-color {
+  margin-top: 2px;
+}
+
+/* T-825c：霧裡的天空卡片後面（中間偏下）亮、四周偏冷偏暗的柔和暗角（上面與四角最暗），濃淡跟著〔霧〕；
+   同 render/water-layout.ts 的 mistSky（3D 的遠景平面與遠處水面用那個，這層只在遠景還沒讀好時看得到）。 */
+.stage.is-water.has-water-mist {
+  background:
+    radial-gradient(
+      ellipse 36% 24% at 50% 4%,
+      rgba(196, 216, 255, calc(0.14 * (1 - var(--water-mist, 0)))) 0%,
+      rgba(196, 216, 255, 0) 100%
+    ),
+    radial-gradient(
+      ellipse 40% 34% at 50% 60%,
+      color-mix(in srgb, #fff6e6 calc(var(--water-mist, 0) * 16%), transparent) 0%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 82% 78% at 50% 64%,
+      transparent 42%,
+      color-mix(in srgb, #2a3846 calc(var(--water-mist, 0) * 44%), transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--water-mist-color, #17326a) calc(var(--water-mist, 0) * 80%), #060e26) 0%,
+      color-mix(in srgb, var(--water-mist-color, #17326a) calc(var(--water-mist, 0) * 90%), #0c1c44) 28%,
+      color-mix(in srgb, var(--water-mist-color, #17326a) calc(var(--water-mist, 0) * 100%), #17326a) 43%,
+      color-mix(in srgb, var(--water-mist-color, #17326a) calc(var(--water-mist, 0) * 85%), #0d1d42) 52%,
+      color-mix(in srgb, var(--water-mist-color, #17326a) calc(var(--water-mist, 0) * 55%), #050b1e) 100%
+    );
+}
+
+/* ---------- 語言（T-828，DESIGN §9） ---------- */
+
+/* 頁首語言按鈕（〔?〕左邊）：地球＋目前語言的短名；清單沿用〔匯出 ▾〕選單的樣子，目前那個打勾、字用強調色（琥珀金） */
+.lang-dropdown {
+  position: relative;
+  flex: none;
+}
+
+.btn.lang-btn {
+  flex: none;
+  gap: 6px;
+  padding-left: 10px;
+  padding-right: 12px;
+}
+
+.lang-btn-name {
+  white-space: nowrap;
+}
+
+.lang-menu {
+  width: 200px;
+}
+
+.lang-item .menu-title {
+  flex: 1;
+}
+
+.lang-item.is-current .menu-title {
+  color: var(--accent);
+}
+
+/* 介面字型照語言分開（:lang() 跟著 <html lang>）：只設在 body 上讓其他元素照常繼承（不蓋掉字型選項、故事這些自己設的字型）；
+   正體中文照舊（html, body 那一條）。語言清單裡每個名字用它自己的 lang，也用那個語言的字型（字形才對）。
+   文字圖層的四套字型不受影響（畫在畫布上）。 */
+html:lang(ja) body,
+.lang-item:lang(ja) {
+  font-family: 'Yu Gothic UI', 'Yu Gothic', Meiryo, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+}
+
+html:lang(ko) body,
+.lang-item:lang(ko) {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+}
+
+html:lang(en) body,
+.lang-item:lang(en) {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.lang-item:lang(zh-Hant) {
+  font-family: system-ui, 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+}
+
+/* ---------- T-828e 四種語言的版面（DESIGN §9：任何語言都不截字、不擠出框；按鈕可以換行或變寬，面板可以變高） ----------
+   正體中文照舊；下面只在英日韓生效，或寫成「放得下就和原本一樣、放不下才換行」的規則（各自在原本的地方標 T-828e）。 */
+
+/* 換行的位置：韓文照空格斷（不把一個詞拆兩半），太長的詞才硬斷；日文照詞組斷（Chrome 的 auto-phrase，不支援的瀏覽器照舊） */
+html:lang(ko) body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+html:lang(ja) body {
+  word-break: auto-phrase;
+}
+
+/* 右欄「比例」：英日韓的名字（Standard card、ポストカード、직접 설정）五格放不下 → 排成 3＋2，名字可以兩行；
+   外形對齊在同一條線上（名字從同一個高度開始） */
+html:lang(en) .aspect-picker,
+html:lang(ja) .aspect-picker,
+html:lang(ko) .aspect-picker {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: 4px;
+}
+
+html:lang(en) .aspect-opt,
+html:lang(ja) .aspect-opt,
+html:lang(ko) .aspect-opt {
+  align-content: start;
+  height: auto;
+  min-height: 58px;
+  padding: 6px 4px;
+  line-height: 1.2;
+}
+
+/* ---------- T-830 前景圖：右欄「舞台」小節最下面「前景圖」（和背景圖同一個元件：〔加上前景圖…〕／小縮圖＋〔換一張〕〔拿掉〕，
+   有圖時下面接〔左右〕〔上下〕〔大小〕〔模糊〕＋〔置中〕）；預覽區疊在 3D 畫布上面、選取框下面的一層，不接滑鼠（拖卡、點圖層、破框層照舊）。
+   位置、大小、模糊照 ui/stage.ts 設的變數（render/backdrop.ts 的 foregroundCss，單位是預覽區 .stage-view 的 cqw／cqh，
+   預覽區多大都不用重算、和匯出同一個算法）；轉卡時的微動是 --fg-dx／--fg-dy（main 每影格給，減少動態時是 0）。
+   圖可以超出預覽區（往下蓋到提示列後面，提示列照樣在上面），整個舞台的 overflow: hidden 裁掉外面。 ---------- */
+
+.foreground-block {
+  gap: 8px;
+}
+
+.foreground-place {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 前景圖多半是透明背景的花枝、碎片：小縮圖整張看得到（不裁），透明處露出棋盤格 */
+.foreground-thumb {
+  object-fit: contain;
+}
+
+.stage-foreground {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+}
+
+.stage-foreground.has-image {
+  display: block;
+}
+
+.stage-foreground-img {
+  position: absolute;
+  left: var(--fg-left, 50cqw);
+  top: var(--fg-top, 50cqh);
+  width: var(--fg-size, 60cqh);
+  height: var(--fg-size, 60cqh);
+  max-width: none;
+  object-fit: contain;
+  transform: translate(-50%, -50%) translate(var(--fg-dx, 0px), var(--fg-dy, 0px));
+  filter: blur(var(--fg-blur, 0px));
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- T-832 工作桌（壓克力展示架）：舞台選工作桌、沒有自己的背景圖時，預覽區的 CSS 那層是清楚的木桌（和頁面背景 body::before
+   同一張 /stages/desk.webp，不模糊；ui/stage.ts 加 is-desk），3D 畫透明壓克力展示座、桌上的影子與淡淡的倒影。
+   擺法：圖放大到預覽區高的 1.6 倍，讓圖上檯燈照亮的那片桌面（約圖寬 27%、圖高 65%）落在展示座下面（預覽區正中、約 87% 高，
+   預設縮放下展示座的底在這裡）；預覽區很寬時左邊不露空（left 夾在 0 以內）。.stage-backdrop.is-desk 是尺寸容器，木桌的大小用它的 cqw／cqh。
+   有自己的背景圖時 is-custom 取代（T-814 照舊）；圖讀不到時是頁面同款的深木棕漸層。右欄舞台七顆照原本的三欄排（3＋3＋1）。 ---------- */
+
+.stage.is-desk {
+  background: var(--page-fallback);
+}
+
+.stage-backdrop.is-desk {
+  container-type: size;
+}
+
+.stage-backdrop.is-desk::before {
+  content: '';
+  position: absolute;
+  top: calc(87cqh - 0.65 * 160cqh);
+  left: clamp(calc(100cqw - max(100cqw, 284.4cqh)), calc(50cqw - 0.27 * 284.4cqh), 0px);
+  width: max(100cqw, 284.4cqh);
+  height: 160cqh;
+  /* 第一層：檯燈燈泡那一塊（圖上約 22.7%、17.5%，在卡片左上角後面）壓暗，讓卡片更跳（T-832c）；跟著圖一起放大縮小，不動頁面背景 */
+  background:
+    radial-gradient(
+      ellipse 15% 13% at 22.7% 17.5%,
+      color-mix(in srgb, var(--c-ink) 60%, transparent) 0%,
+      color-mix(in srgb, var(--c-ink) 32%, transparent) 55%,
+      transparent 100%
+    ),
+    url("/stages/desk.webp") 0% 50% / cover no-repeat;
+  filter: brightness(0.9);
+  pointer-events: none;
+}
+
+/* 木桌的暗角：四周壓暗一點（墨褐），卡片與展示座那一塊不壓 */
+.stage-backdrop.is-desk::after {
+  background:
+    radial-gradient(ellipse 78% 72% at 50% 56%, transparent 45%, color-mix(in srgb, var(--c-ink) 55%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--c-ink) 30%, transparent) 0%, transparent 30%);
+}
+
+/* ---------- T-833 圖層列第三行「混合模式・不透明度 N%」：第二行（深度，14px）再小一級、更淡；放不下就換行（跟 .layer-sub 一樣不截字，數字不會被吃掉，被截的只會是名字那個輸入框）。
+   名字欄只有約 84px，放不下這一行，所以它是列（li）的最後一個子元素、跨過名字欄與按鈕欄（最後兩欄，不管有沒有拖把手、反光星星）排在整列最下面；
+   有這一行的列（.has-look）縮圖與拖把手跨兩行、列距縮小。底圖沒有這一行（藏起來、不加 .has-look）。 ---------- */
+
+.layer-row.has-look {
+  row-gap: 2px;
+}
+
+.layer-row.has-look > .layer-grip,
+.layer-row.has-look > .layer-thumb-wrap {
+  grid-row: span 2;
+}
+
+.layer-look {
+  grid-column: -3 / -1;
+  min-width: 0;
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.layer-row.is-hidden .layer-look {
+  opacity: 0.42;
+}
+
+/* ---------- T-835 預覽區下方工具列：〔展示〕旁邊的〔−〕{縮放比例}〔＋〕｜〔全螢幕〕（DESIGN §5.2，ui/view-tools.ts）。
+   和〔展示〕、提示列同一種半透明暖深棕膠囊（不加背景模糊：背景模糊只給面板與提示列，tests/ui-theme-css）；
+   到上下限、不能全螢幕時那顆變淡（aria-disabled，焦點照樣停得住）。 ---------- */
+
+.view-tools {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--panel-top), var(--panel));
+  box-shadow: 0 8px 22px var(--drop-shadow-soft), var(--inner-light);
+}
+
+.zoom-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.btn-icon.view-tool {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background: transparent;
+}
+
+.btn-icon.view-tool:hover {
+  background: var(--hover);
+}
+
+.btn-icon.view-tool[aria-disabled='true'] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.btn-icon.view-tool[aria-disabled='true']:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.btn-icon.fullscreen-btn.is-on {
+  color: var(--accent);
+}
+
+.zoom-value {
+  min-width: 4.4ch;
+  color: var(--text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.view-tools-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+/* 全螢幕：只有預覽區（.stage）鋪滿整個螢幕，四角不圓、沒有邊框；下方工具列在裡面照樣顯示 */
+.stage:fullscreen {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ---------- T-836 右欄各小節可以摺疊（DESIGN §5.2，ui/collapse.ts）：標題字搬進一顆按鈕（樣式照原本的標題），旁邊一個小箭頭
+   （展開＝朝下、收起＝朝右）；內容那一層 .section-body 是 display: contents，展開時版面和以前一樣，收起＝hidden。 ---------- */
+
+.section-body {
+  display: contents;
+}
+
+/* 左右不加內距也不用負的外距（負的左右外距會讓外層少算寬度、把字擠成一字一行）；上下多 3px 好按、不推動版面 */
+.section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin: -3px 0;
+  padding: 3px 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-toggle-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-toggle:hover .section-toggle-text {
+  color: var(--title);
+}
+
+/* 整列都可以按（風格、卡身、鐳射、陰影、舞台…的標題列）；比例、卡框只有字那一塊（卡框右邊是開關） */
+.group-title.has-toggle .section-toggle {
+  width: 100%;
+}
+
+.section-chevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+/* 標題裡的圖示原本是金色（.panel-title .icon、.holo-title .icon）：小箭頭不跟著，用淡色 */
+.section-chevron .icon {
+  color: inherit;
+}
+
+.section-toggle:hover .section-chevron {
+  color: var(--accent);
+}
+
+.section-toggle[aria-expanded='false'] .section-chevron {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-chevron {
+    transition: none;
+  }
+}
+
+/* ---------- T-840 選中圖層的進階效果：沿用小節摺疊；四語標題與計數可以換行，不截字。 ---------- */
+.layer-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.layer-advanced .section-toggle-text {
+  min-width: 0;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+
+.layer-advanced-count {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* T-845：卡片庫全部備份；長卡名與四語結果可換行。 */
+.lib-backup {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lib-backup-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lib-backup-status {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lib-backup-restore {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---------- T-850 連舞台一起錄：影片與 GIF 的選項小框〔開始匯出〕上面一列勾選（樣子同頁首匯出選單的勾選）；
+   舞台「關」時變淡、不能勾；GIF 勾著時下面多一句小字。 ---------- */
+.stage-record {
+  gap: 8px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.stage-record input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.stage-record.is-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.stage-record.is-disabled input {
+  cursor: default;
+}
+
+.go-stage-note {
+  flex: none;
+  margin-top: -4px;
+}

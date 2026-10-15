@@ -1,0 +1,53 @@
+{
+  "width": 252,
+  "height": 352,
+  "lossless": false,
+  "encoding": "rgb565-delta",
+  "baseline": {
+    "bandCount": 3,
+    "bandDepths": [
+      0,
+      50,
+      100
+    ],
+    "splitMs": 168,
+    "effectiveBoundaries": [
+      0.029,
+      0.232
+    ],
+    "bandAreaFraction": [
+      0.0707,
+      0.3795,
+      0.5498
+    ],
+    "heroShareInBand": [
+      0.0006,
+      0.0085,
+      0.9909
+    ],
+    "bandPurity_heroFractionOfBand": [
+      0.0044,
+      0.0121,
+      0.9713
+    ],
+    "nonHeroShareInBand": [
+      0.1527,
+      0.8131,
+      0.0342
+    ],
+    "nearBand": {
+      "index": 2,
+      "areaFraction": 0.5498,
+      "heroShare": 0.9909,
+      "purity": 0.9713
+    },
+    "ghost": {
+      "heroPixelsKeptInBackgroundBand": 0.0005,
+      "heroPixelsCoveredByForeground": 0.9995,
+      "coveredButFillStillSimilarToOriginal": 0.0112,
+      "coveredMeanAbsDiff0to255": 70.2,
+      "allHeroMeanAbsDiff0to255": 70.2,
+      "ghostTotalFraction": 0.0117
+    }
+  }
+}

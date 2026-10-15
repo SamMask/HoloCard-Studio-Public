@@ -1,0 +1,702 @@
+{
+  "baselineCommit": "b9abaac337bd7cd65aa3b179ec0c8e5414277b48",
+  "inputSize": [
+    1008,
+    1408
+  ],
+  "source": "Four local original sample images, WebGPU depth16 and hero masks; lossless audit",
+  "order": "far to near; two-band results have no middle band",
+  "cards": [
+    {
+      "card": 1,
+      "before": {
+        "bands": 3,
+        "area": [
+          0.070727,
+          0.379496,
+          0.549777
+        ],
+        "hero": [
+          0.000576,
+          0.008495,
+          0.990928
+        ],
+        "nearPurity": 0.971311,
+        "ghost": 0.011708
+      },
+      "after": {
+        "bands": 3,
+        "area": [
+          0.075492,
+          0.374886,
+          0.549622
+        ],
+        "hero": [
+          0.000603,
+          0.008575,
+          0.990822
+        ],
+        "nearPurity": 0.971481,
+        "ghost": 0.000811
+      }
+    },
+    {
+      "card": 2,
+      "before": {
+        "bands": 3,
+        "area": [
+          0.088461,
+          0.890372,
+          0.021167
+        ],
+        "hero": [
+          0.025095,
+          0.965575,
+          0.00933
+        ],
+        "nearPurity": 0.156758,
+        "ghost": 0.068445
+      },
+      "after": {
+        "bands": 2,
+        "area": [
+          0.089664,
+          0.910336
+        ],
+        "hero": [
+          0.025307,
+          0.974693
+        ],
+        "nearPurity": 0.380766,
+        "ghost": 0.06068
+      }
+    },
+    {
+      "card": 3,
+      "before": {
+        "bands": 3,
+        "area": [
+          0.588722,
+          0.391249,
+          0.020029
+        ],
+        "hero": [
+          0.026924,
+          0.973076,
+          0
+        ],
+        "nearPurity": 0,
+        "ghost": 0.121212
+      },
+      "after": {
+        "bands": 2,
+        "area": [
+          0.588737,
+          0.411263
+        ],
+        "hero": [
+          0.026946,
+          0.973054
+        ],
+        "nearPurity": 0.551687,
+        "ghost": 0.120167
+      }
+    },
+    {
+      "card": 4,
+      "before": {
+        "bands": 3,
+        "area": [
+          0.393035,
+          0.586705,
+          0.020261
+        ],
+        "hero": [
+          0.035692,
+          0.908575,
+          0.055733
+        ],
+        "nearPurity": 0.764816,
+        "ghost": 0.064823
+      },
+      "after": {
+        "bands": 2,
+        "area": [
+          0.393941,
+          0.606059
+        ],
+        "hero": [
+          0.035809,
+          0.964191
+        ],
+        "nearPurity": 0.442326,
+        "ghost": 0.062932
+      }
+    }
+  ],
+  "card4ReducedLowerQuarterHeroNear": {
+    "size": [
+      252,
+      352
+    ],
+    "before": 0.17759341758341196,
+    "after": 0.9903132608014871
+  },
+  "previousPerformance": {
+    "input": "Raw model card2 depth, 4096 by 3072 output, patterned opaque RGBA",
+    "requestedBands": 3,
+    "actualBandsAfter": 2,
+    "limitMs": 2000,
+    "passed": false,
+    "candidateOnlyTotalsMs": [
+      1291.2653,
+      2679.8464,
+      2694.3745
+    ],
+    "isolatedGcComparison": {
+      "beforeTotalsMs": [
+        1288.6469,
+        2751.6218,
+        3064.8789
+      ],
+      "afterTotalsMs": [
+        3283.0243,
+        3652.751,
+        3112.9886
+      ],
+      "arrayBuffersBeforeAfter": 51864875
+    },
+    "note": "Timing varies substantially. The old 1.57 s baseline was not reproduced consistently. Do not claim the <=2 s acceptance passed. Browser performance was not measured."
+  },
+  "performance": {
+    "input": "Stored card2 normalized depth (252x352), normalized again by depthToImage; opaque patterned RGBA, 4096x3072 output",
+    "comparison": "head = committed pre-quality version; before = uncommitted quality-passing implementation at start of this performance-only round",
+    "committedComparison": "b0f1a7d912ad00d4f407184992a47985f49e5f1b",
+    "requestedBands": 3,
+    "actualBandsAfter": 2,
+    "limitMs": 2000,
+    "testToleranceMs": 6000,
+    "passed": true,
+    "timingMethod": "One warmup per version; five measured runs alternating version order; exposed GC outside timed sections; standalone process after tests",
+    "measurements": [
+      {
+        "name": "head",
+        "run": 0,
+        "totalMs": 1754.8863000000001,
+        "cpuMs": 1734,
+        "bands": 3,
+        "stages": {}
+      },
+      {
+        "name": "before",
+        "run": 0,
+        "totalMs": 1911.6550000000007,
+        "cpuMs": 2015,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "after",
+        "run": 0,
+        "totalMs": 1597.1600999999991,
+        "cpuMs": 1657,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "after",
+        "run": 1,
+        "totalMs": 1579.2361,
+        "cpuMs": 1750,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "before",
+        "run": 1,
+        "totalMs": 1864.9624000000003,
+        "cpuMs": 2062,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "head",
+        "run": 1,
+        "totalMs": 1981.047199999999,
+        "cpuMs": 2047,
+        "bands": 3,
+        "stages": {}
+      },
+      {
+        "name": "head",
+        "run": 2,
+        "totalMs": 1799.5872999999992,
+        "cpuMs": 1812,
+        "bands": 3,
+        "stages": {}
+      },
+      {
+        "name": "before",
+        "run": 2,
+        "totalMs": 1734.6000999999997,
+        "cpuMs": 1782,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "after",
+        "run": 2,
+        "totalMs": 1471.7137000000002,
+        "cpuMs": 1500,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "after",
+        "run": 3,
+        "totalMs": 1469.9975000000013,
+        "cpuMs": 1750,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "before",
+        "run": 3,
+        "totalMs": 1615.6569999999992,
+        "cpuMs": 1703,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "head",
+        "run": 3,
+        "totalMs": 1713.6479,
+        "cpuMs": 1796,
+        "bands": 3,
+        "stages": {}
+      },
+      {
+        "name": "head",
+        "run": 4,
+        "totalMs": 1734.4209999999985,
+        "cpuMs": 1735,
+        "bands": 3,
+        "stages": {}
+      },
+      {
+        "name": "before",
+        "run": 4,
+        "totalMs": 1762.0099999999984,
+        "cpuMs": 1796,
+        "bands": 2,
+        "stages": {}
+      },
+      {
+        "name": "after",
+        "run": 4,
+        "totalMs": 1533.6993000000002,
+        "cpuMs": 1734,
+        "bands": 2,
+        "stages": {}
+      }
+    ],
+    "summaries": [
+      {
+        "summary": "head",
+        "medianMs": 1754.8863000000001,
+        "slowestMs": 1981.047199999999,
+        "stages": {}
+      },
+      {
+        "summary": "before",
+        "medianMs": 1762.0099999999984,
+        "slowestMs": 1911.6550000000007,
+        "stages": {}
+      },
+      {
+        "summary": "after",
+        "medianMs": 1533.6993000000002,
+        "slowestMs": 1597.1600999999991,
+        "stages": {}
+      }
+    ],
+    "profileMethod": "Separate instrumented run; stage figures are independent medians and do not add up to median total; platformExclusion includes smoothing",
+    "stageMeasurements": [
+      {
+        "name": "before",
+        "run": 0,
+        "totalMs": 758.5008000000003,
+        "cpuMs": 797,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 178.9614999999999,
+          "histogram": 41.848099999999704,
+          "platformExclusion": 0.4729000000002088,
+          "valleySearch": 0.40819999999985157,
+          "bandAreas": 91.35020000000031,
+          "outputBuffers": 16.25689999999986,
+          "softMask": 126.92299999999977,
+          "inset": 69.7162000000003,
+          "pyramid": 86.37779999999975,
+          "composition": 145.83030000000008
+        }
+      },
+      {
+        "name": "after",
+        "run": 0,
+        "totalMs": 1293.3671999999997,
+        "cpuMs": 1422,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 136.0304000000001,
+          "histogram": 45.4666000000002,
+          "platformExclusion": 1.8355000000001382,
+          "valleySearch": 1.446599999999762,
+          "bandAreas": 191.76150000000007,
+          "outputBuffers": 29.971900000000005,
+          "softMask": 325.4627999999998,
+          "inset": 72.4014000000002,
+          "pyramid": 144.12710000000015,
+          "composition": 344.37249999999995
+        }
+      },
+      {
+        "name": "after",
+        "run": 1,
+        "totalMs": 1601.1724000000004,
+        "cpuMs": 1703,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 379.9533000000001,
+          "histogram": 91.4380000000001,
+          "platformExclusion": 1.3521999999993568,
+          "valleySearch": 1.1685000000006767,
+          "bandAreas": 194.03339999999935,
+          "outputBuffers": 35.66070000000036,
+          "softMask": 301.89559999999983,
+          "inset": 93.90630000000056,
+          "pyramid": 133.11069999999927,
+          "composition": 368.3145000000004
+        }
+      },
+      {
+        "name": "before",
+        "run": 1,
+        "totalMs": 1894.9865,
+        "cpuMs": 2047,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 383.1388999999999,
+          "histogram": 110.60150000000067,
+          "platformExclusion": 1.3308999999999287,
+          "valleySearch": 4.648799999999937,
+          "bandAreas": 220.44650000000001,
+          "outputBuffers": 30.947299999999814,
+          "softMask": 331.8753999999999,
+          "inset": 217.17569999999978,
+          "pyramid": 207.1786000000002,
+          "composition": 387.0643
+        }
+      },
+      {
+        "name": "before",
+        "run": 2,
+        "totalMs": 2062.0086999999994,
+        "cpuMs": 2063,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 385.6704,
+          "histogram": 84.26389999999992,
+          "platformExclusion": 3.287800000000061,
+          "valleySearch": 2.6421999999993204,
+          "bandAreas": 209.0544,
+          "outputBuffers": 33.324000000000524,
+          "softMask": 326.9179000000004,
+          "inset": 256.7981,
+          "pyramid": 341.04449999999997,
+          "composition": 418.8606
+        }
+      },
+      {
+        "name": "after",
+        "run": 2,
+        "totalMs": 1482.211299999999,
+        "cpuMs": 1499,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 335.35200000000077,
+          "histogram": 76.65480000000025,
+          "platformExclusion": 1.6134999999994761,
+          "valleySearch": 1.1532999999999447,
+          "bandAreas": 201.9405000000006,
+          "outputBuffers": 32.616399999998976,
+          "softMask": 311.58810000000085,
+          "inset": 76.69859999999971,
+          "pyramid": 118.26180000000022,
+          "composition": 325.9362000000001
+        }
+      },
+      {
+        "name": "after",
+        "run": 3,
+        "totalMs": 1542.282000000001,
+        "cpuMs": 1734,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 335.97629999999845,
+          "histogram": 79.78210000000036,
+          "platformExclusion": 1.5076000000008207,
+          "valleySearch": 1.531299999998737,
+          "bandAreas": 208.52459999999883,
+          "outputBuffers": 35.452000000001135,
+          "softMask": 339.60679999999957,
+          "inset": 79.8802999999989,
+          "pyramid": 116.39030000000093,
+          "composition": 336.96910000000025
+        }
+      },
+      {
+        "name": "before",
+        "run": 3,
+        "totalMs": 1851.8714,
+        "cpuMs": 1859,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 377.91349999999875,
+          "histogram": 99.64969999999994,
+          "platformExclusion": 1.3976999999995314,
+          "valleySearch": 1.488100000000486,
+          "bandAreas": 212.57999999999993,
+          "outputBuffers": 31.09180000000015,
+          "softMask": 338.6753000000008,
+          "inset": 250.85399999999936,
+          "pyramid": 204.71199999999953,
+          "composition": 330.4488000000001
+        }
+      },
+      {
+        "name": "before",
+        "run": 4,
+        "totalMs": 1746.2351999999992,
+        "cpuMs": 1781,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 374.88850000000093,
+          "histogram": 85.01560000000063,
+          "platformExclusion": 0.04579999999987194,
+          "valleySearch": 0.11809999999968568,
+          "bandAreas": 193.35039999999935,
+          "outputBuffers": 31.906600000000253,
+          "softMask": 277.4287999999997,
+          "inset": 230.73430000000008,
+          "pyramid": 214.4958999999999,
+          "composition": 337.48409999999967
+        }
+      },
+      {
+        "name": "after",
+        "run": 4,
+        "totalMs": 1479.5972000000002,
+        "cpuMs": 1531,
+        "bands": 2,
+        "stages": {
+          "depthToImage": 335.97019999999975,
+          "histogram": 81.20119999999952,
+          "platformExclusion": 0.06290000000080909,
+          "valleySearch": 0.14689999999973224,
+          "bandAreas": 211.91849999999977,
+          "outputBuffers": 33.45360000000073,
+          "softMask": 313.08569999999963,
+          "inset": 76.90699999999924,
+          "pyramid": 106.0525000000016,
+          "composition": 320.23049999999785
+        }
+      }
+    ],
+    "stageSummaries": [
+      {
+        "summary": "before",
+        "medianMs": 1851.8714,
+        "slowestMs": 2062.0086999999994,
+        "stages": {
+          "depthToImage": 377.91349999999875,
+          "histogram": 85.01560000000063,
+          "platformExclusion": 1.3308999999999287,
+          "valleySearch": 1.488100000000486,
+          "bandAreas": 209.0544,
+          "outputBuffers": 31.09180000000015,
+          "softMask": 326.9179000000004,
+          "inset": 230.73430000000008,
+          "pyramid": 207.1786000000002,
+          "composition": 337.48409999999967
+        }
+      },
+      {
+        "summary": "after",
+        "medianMs": 1482.211299999999,
+        "slowestMs": 1601.1724000000004,
+        "stages": {
+          "depthToImage": 335.97019999999975,
+          "histogram": 79.78210000000036,
+          "platformExclusion": 1.5076000000008207,
+          "valleySearch": 1.1685000000006767,
+          "bandAreas": 201.9405000000006,
+          "outputBuffers": 33.45360000000073,
+          "softMask": 313.08569999999963,
+          "inset": 76.90699999999924,
+          "pyramid": 118.26180000000022,
+          "composition": 336.96910000000025
+        }
+      }
+    ],
+    "note": "The input differs from the earlier raw-model f32 benchmark. That exact raw input was unavailable in this workspace and was not rerun. Browser performance was not measured."
+  },
+  "performanceOnlyQualityCheck": {
+    "inputSize": [
+      1008,
+      1408
+    ],
+    "lossless": true,
+    "allBandRgbaBytesIdentical": true,
+    "cards": [
+      {
+        "card": 1,
+        "before": {
+          "card": 1,
+          "name": "before",
+          "count": 3,
+          "area": [
+            0.07549229879767565,
+            0.37488579830603386,
+            0.5496219028962661
+          ],
+          "hero": [
+            0.0006030287517709897,
+            0.008575124225666092,
+            0.9908218470225789
+          ],
+          "nearPurity": 0.9714812117328302,
+          "ghost": 0.0008106355382619975
+        },
+        "after": {
+          "card": 1,
+          "name": "after",
+          "count": 3,
+          "area": [
+            0.07549229879767565,
+            0.37488579830603386,
+            0.5496219028962661
+          ],
+          "hero": [
+            0.0006030287517709897,
+            0.008575124225666092,
+            0.9908218470225789
+          ],
+          "nearPurity": 0.9714812117328302,
+          "ghost": 0.0008106355382619975
+        }
+      },
+      {
+        "card": 2,
+        "before": {
+          "card": 2,
+          "name": "before",
+          "count": 2,
+          "area": [
+            0.08966358205213985,
+            0.9103364179479022
+          ],
+          "hero": [
+            0.025306885591895194,
+            0.9746931144081058
+          ],
+          "nearPurity": 0.38076627145714514,
+          "ghost": 0.06068044840170706
+        },
+        "after": {
+          "card": 2,
+          "name": "after",
+          "count": 2,
+          "area": [
+            0.08966358205213985,
+            0.9103364179479022
+          ],
+          "hero": [
+            0.025306885591895194,
+            0.9746931144081058
+          ],
+          "nearPurity": 0.38076627145714514,
+          "ghost": 0.06068044840170706
+        }
+      },
+      {
+        "card": 3,
+        "before": {
+          "card": 3,
+          "name": "before",
+          "count": 2,
+          "area": [
+            0.5887368465378764,
+            0.4112631534621311
+          ],
+          "hero": [
+            0.02694616724767568,
+            0.9730538327523249
+          ],
+          "nearPurity": 0.5516868642326761,
+          "ghost": 0.1201666807682545
+        },
+        "after": {
+          "card": 3,
+          "name": "after",
+          "count": 2,
+          "area": [
+            0.5887368465378764,
+            0.4112631534621311
+          ],
+          "hero": [
+            0.02694616724767568,
+            0.9730538327523249
+          ],
+          "nearPurity": 0.5516868642326761,
+          "ghost": 0.1201666807682545
+        }
+      },
+      {
+        "card": 4,
+        "before": {
+          "card": 4,
+          "name": "before",
+          "count": 2,
+          "area": [
+            0.3939408639086915,
+            0.6060591360913077
+          ],
+          "hero": [
+            0.0358088906114904,
+            0.9641911093885107
+          ],
+          "nearPurity": 0.4423255377804121,
+          "ghost": 0.06293208312214901,
+          "lowerQuarterHeroNear": 0.9895968899240686
+        },
+        "after": {
+          "card": 4,
+          "name": "after",
+          "count": 2,
+          "area": [
+            0.3939408639086915,
+            0.6060591360913077
+          ],
+          "hero": [
+            0.0358088906114904,
+            0.9641911093885107
+          ],
+          "nearPurity": 0.4423255377804121,
+          "ghost": 0.06293208312214901,
+          "lowerQuarterHeroNear": 0.9895968899240686
+        }
+      }
+    ]
+  }
+}

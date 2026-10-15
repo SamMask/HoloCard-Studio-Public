@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.log
+
+# 生圖的原始大圖與檢查圖（審完移到 scratchpad，不進 repo）
+.art-tmp/
+
+# 參考圖的版權屬原作者，只留本機（見 docs/refs/README.md）
+docs/refs/*
+!docs/refs/README.md
+
+# AI 模型與 onnxruntime 執行檔（npm run fetch-models 下載／複製，不進 git；見 docs/refs/README.md §3.1）
+public/models/
+public/ort/
